@@ -1,169 +1,660 @@
 <!doctype html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="utf-8">
-<title>אימון אוזן</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>אימון אוזן</title>
+  <style>
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 920px; margin: auto; }
+    button { padding: 10px 14px; margin: 6px 6px 6px 0; font-size: 16px; }
+    .row { margin-top: 10px; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tab { padding: 10px 14px; border: 1px solid #aaa; border-radius: 10px; cursor: pointer; user-select: none; }
+    .tab.active { font-weight: 900; }
+    .panel { display: none; }
+    .panel.active { display: block; }
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  max-width: 800px;
-  margin: auto;
-  padding: 20px;
-}
+    #status { margin-top: 12px; font-weight: 900; }
+    #bigAnswer { margin-top: 12px; font-size: 54px; font-weight: 900; text-align: center; min-height: 64px; }
 
-button {
-  font-size: 18px;
-  padding: 10px 16px;
-  margin: 6px;
-}
+    .small { font-size: 13px; opacity: 0.85; line-height: 1.35; }
+    kbd { padding: 2px 6px; border: 1px solid #aaa; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; }
+    input[type="range"] { width: 260px; }
+    label { display: block; margin-top: 10px; }
 
-#status {
-  margin-top: 12px;
-  font-weight: bold;
-}
+    /* degrees buttons left-to-right like piano */
+    .answersRow {
+      display: flex;
+      direction: ltr;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .answersRow button { min-width: 64px; }
 
-#bigAnswer {
-  margin-top: 20px;
-  font-size: 48px;
-  font-weight: bold;
-  text-align: center;
-}
+    /* fixed result panel */
+    .resultPanel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid #aaa;
+      border-radius: 12px;
+    }
+    .resultGrid {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .resultItem {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 260px;
+    }
+    .resultLabel { font-weight: 900; }
+    .resultValue { font-weight: 900; font-size: 18px; }
+    .mark {
+      font-weight: 900;
+      font-size: 20px;
+      width: 26px;
+      text-align: center;
+    }
+    .mark.ok { color: #0a7a0a; }
+    .mark.bad { color: #b30000; }
+    .mark.neutral { color: #666; }
 
-.resultBox {
-  margin-top: 16px;
-  padding: 12px;
-  border: 1px solid #999;
-  border-radius: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.mark {
-  font-size: 28px;
-}
-.ok { color: green; }
-.bad { color: red; }
-</style>
+    /* stats panel */
+    .statsPanel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid #aaa;
+      border-radius: 12px;
+    }
+    .statsGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 22px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stat { min-width: 210px; }
+    .stat b { font-weight: 900; }
+    .btnDanger {
+      border: 1px solid #b30000;
+      color: #b30000;
+      background: transparent;
+      border-radius: 10px;
+    }
+  </style>
 </head>
-
 <body>
 
-<h2>אימון אוזן – טרצה גדולה / קטנה</h2>
+  <h2>אימון אוזן</h2>
 
-<button id="play">נגן רנדומלי</button>
-<button id="replay">נגן שוב (R)</button>
-
-<br>
-
-<button id="major" disabled>מז'ור (F / M)</button>
-<button id="minor" disabled>מינור (D / N)</button>
-
-<div id="status">מוכן</div>
-
-<div class="resultBox">
-  <div>
-    ענית:
-    <span id="userText">—</span>
+  <div class="tabs">
+    <div class="tab active" id="tabThirds">מצב 1: טרצה מז'ור/מינור</div>
+    <div class="tab" id="tabDegrees">מצב 2: דרגות בסולם דו</div>
   </div>
-  <div class="mark" id="mark">—</div>
-  <div>
-    נכון:
-    <span id="correctText">—</span>
-  </div>
-</div>
 
-<div id="bigAnswer"></div>
+  <div class="small">
+    קיצורים (לפי מקש פיזי, לא תלוי שפה):<br/>
+    <kbd>Space</kbd> = נגן רנדומלי · <kbd>R</kbd> = נגן שוב · מעבר מצבים: <kbd>F1</kbd> מצב 1, <kbd>F2</kbd> מצב 2.<br/>
+    מצב 1: מז'ור = <kbd>M</kbd> או <kbd>F</kbd> · מינור = <kbd>N</kbd> או <kbd>D</kbd>.<br/>
+    מצב 2: תשובה = <kbd>1</kbd>…<kbd>7</kbd> · רפרנס דו = <kbd>C</kbd>.
+  </div>
+
+  <hr />
+
+  <!-- ===================== MODE 1: THIRDS ===================== -->
+  <section class="panel active" id="panelThirds">
+    <h3>מצב 1: טרצה גדולה/קטנה (בסיס רנדומלי)</h3>
+
+    <div class="row">
+      <button id="playBtn">נגן רנדומלי</button>
+      <button id="replayBtn">נגן שוב (R)</button>
+    </div>
+
+    <div class="row">
+      <button id="majorBtn" disabled>מז'ור</button>
+      <button id="minorBtn" disabled>מינור</button>
+    </div>
+
+    <label>
+      <input type="checkbox" id="asChord" />
+      לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו קצר.
+    </label>
+
+    <label>
+      <input type="checkbox" id="randomStyle" />
+      מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.
+    </label>
+
+    <label>
+      טווח בסיסים: <span id="rangeLabel"></span>
+      <div class="small">מומלץ: להשאיר באמצע כדי שלא יהיה גבוה/נמוך מדי.</div>
+      <input id="lowNote" type="range" min="48" max="72" step="1" value="55" />
+      <input id="highNote" type="range" min="48" max="72" step="1" value="67" />
+    </label>
+
+    <label>
+      <input type="checkbox" id="avoidBlackRoot" />
+      להעדיף בסיסים על קלידים לבנים בלבד
+    </label>
+  </section>
+
+  <!-- ===================== MODE 2: DEGREES ===================== -->
+  <section class="panel" id="panelDegrees">
+    <h3>מצב 2: דרגות בסולם דו מז'ור (1–7)</h3>
+
+    <div class="row">
+      <button id="degPlayBtn">נגן צליל רנדומלי</button>
+      <button id="degReplayBtn">נגן שוב (R)</button>
+      <button id="playTonicBtn">נגן דו (1) – רפרנס</button>
+    </div>
+
+    <div class="row answersRow" id="degAnswers"></div>
+  </section>
+
+  <div id="status">מוכן.</div>
+
+  <!-- fixed result -->
+  <div class="resultPanel">
+    <div class="resultGrid">
+      <div class="resultItem">
+        <span class="resultLabel">מה ענית:</span>
+        <span class="resultValue" id="userAnswerText">—</span>
+        <span class="mark neutral" id="userAnswerMark">—</span>
+      </div>
+
+      <div class="resultItem">
+        <span class="resultLabel">התשובה הנכונה:</span>
+        <span class="resultValue" id="correctAnswerText">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="bigAnswer"></div>
+
+  <!-- stats -->
+  <div class="statsPanel">
+    <div class="statsGrid">
+      <div class="stat">דיוק כללי: <b><span id="accAll">—</span></b></div>
+      <div class="stat">רצף נכון: <b><span id="streakNow">0</span></b> · שיא: <b><span id="streakBest">0</span></b></div>
+      <div class="stat">ממוצע זמן תגובה: <b><span id="avgTimeAll">—</span></b></div>
+
+      <div class="stat">טרצות: <b><span id="accThirds">—</span></b></div>
+      <div class="stat">דרגות: <b><span id="accDegrees">—</span></b></div>
+
+      <div class="stat">
+        <button class="btnDanger" id="resetStatsBtn">איפוס סטטיסטיקה</button>
+      </div>
+    </div>
+  </div>
 
 <script>
-let ctx = null;
-function audio() {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === "suspended") ctx.resume();
+/* ===================== AUDIO ===================== */
+let audioCtx = null;
+
+function getCtx() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  }
+  return audioCtx;
+}
+
+async function ensureAudio() {
+  const ctx = getCtx();
+  if (ctx.state === "suspended") {
+    await ctx.resume();
+  }
   return ctx;
 }
 
-function freq(m) {
+function midiToFreq(m) {
   return 440 * Math.pow(2, (m - 69) / 12);
 }
 
-function play(m1, m2) {
-  const c = audio();
-  const t = c.currentTime + 0.03;
+function playToneSync(ctx, freq, startTime, dur, gain) {
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
 
-  [m1, m2].forEach(m => {
-    const o = c.createOscillator();
-    const g = c.createGain();
-    o.frequency.value = freq(m);
-    g.gain.value = 0.15;
-    o.connect(g).connect(c.destination);
-    o.start(t);
-    o.stop(t + 0.8);
-  });
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, startTime);
+
+  g.gain.setValueAtTime(0.0001, startTime);
+  g.gain.linearRampToValueAtTime(gain, startTime + 0.01);
+  g.gain.linearRampToValueAtTime(0.0001, startTime + dur);
+
+  osc.connect(g).connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + dur + 0.03);
 }
 
-let root = null;
-let isMajor = null;
-
-function newRound() {
-  root = 48 + Math.floor(Math.random() * 24);
-  isMajor = Math.random() < 0.5;
-
-  document.getElementById("major").disabled = false;
-  document.getElementById("minor").disabled = false;
-
-  clearResult();
-  play(root, root + (isMajor ? 4 : 3));
+async function playTwoSimul(f1, f2) {
+  const ctx = await ensureAudio();
+  const now = ctx.currentTime + 0.03;
+  playToneSync(ctx, f1, now, 0.85, 0.12);
+  playToneSync(ctx, f2, now, 0.85, 0.12);
 }
 
-function replay() {
-  if (root === null) newRound();
-  else play(root, root + (isMajor ? 4 : 3));
+async function playTwoArp(f1, f2) {
+  const ctx = await ensureAudio();
+  const now = ctx.currentTime + 0.03;
+  playToneSync(ctx, f1, now, 0.45, 0.12);
+  playToneSync(ctx, f2, now + 0.18, 0.60, 0.12);
 }
 
-function answer(userMajor) {
-  const correct = userMajor === isMajor;
+async function playSingle(midi, dur, gain) {
+  const ctx = await ensureAudio();
+  const now = ctx.currentTime + 0.03;
+  playToneSync(ctx, midiToFreq(midi), now, dur, gain);
+}
 
-  document.getElementById("userText").textContent = userMajor ? "מז'ור" : "מינור";
-  document.getElementById("correctText").textContent = isMajor ? "מז'ור" : "מינור";
+/* ===================== UI ELEMENTS ===================== */
+const statusEl = document.getElementById("status");
+const bigAnswerEl = document.getElementById("bigAnswer");
 
-  const mark = document.getElementById("mark");
-  mark.textContent = correct ? "✅" : "❌";
-  mark.className = "mark " + (correct ? "ok" : "bad");
+const userAnswerTextEl = document.getElementById("userAnswerText");
+const userAnswerMarkEl = document.getElementById("userAnswerMark");
+const correctAnswerTextEl = document.getElementById("correctAnswerText");
 
-  document.getElementById("bigAnswer").textContent =
-    isMajor ? "מז'ור" : "מינור";
+function setBigAnswer(text) {
+  bigAnswerEl.textContent = text || "";
+}
 
-  document.getElementById("major").disabled = true;
-  document.getElementById("minor").disabled = true;
+function setResult(userText, correctText, isCorrect) {
+  userAnswerTextEl.textContent = userText;
+  correctAnswerTextEl.textContent = correctText;
+
+  userAnswerMarkEl.classList.remove("ok", "bad", "neutral");
+  if (isCorrect === true) {
+    userAnswerMarkEl.textContent = "✅";
+    userAnswerMarkEl.classList.add("ok");
+  } else if (isCorrect === false) {
+    userAnswerMarkEl.textContent = "❌";
+    userAnswerMarkEl.classList.add("bad");
+  } else {
+    userAnswerMarkEl.textContent = "—";
+    userAnswerMarkEl.classList.add("neutral");
+  }
 }
 
 function clearResult() {
-  document.getElementById("userText").textContent = "—";
-  document.getElementById("correctText").textContent = "—";
-  document.getElementById("mark").textContent = "—";
-  document.getElementById("bigAnswer").textContent = "";
+  setResult("—", "—", null);
+  setBigAnswer("");
 }
 
-document.getElementById("play").onclick = newRound;
-document.getElementById("replay").onclick = replay;
-document.getElementById("major").onclick = () => answer(true);
-document.getElementById("minor").onclick = () => answer(false);
+/* ===================== STATS ===================== */
+const accAllEl = document.getElementById("accAll");
+const streakNowEl = document.getElementById("streakNow");
+const streakBestEl = document.getElementById("streakBest");
+const avgTimeAllEl = document.getElementById("avgTimeAll");
+const accThirdsEl = document.getElementById("accThirds");
+const accDegreesEl = document.getElementById("accDegrees");
+const resetStatsBtn = document.getElementById("resetStatsBtn");
 
-window.addEventListener("keydown", e => {
+const stats = {
+  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  degrees: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  streakNow: 0,
+  streakBest: 0,
+};
+
+function pct(c, t) {
+  if (t === 0) return "—";
+  return Math.round((c / t) * 100) + "% (" + c + "/" + t + ")";
+}
+
+function avgSec(sum, count) {
+  if (count === 0) return "—";
+  return (sum / count).toFixed(2) + "s";
+}
+
+function updateStatsUI() {
+  accAllEl.textContent = pct(stats.all.correct, stats.all.total);
+  streakNowEl.textContent = String(stats.streakNow);
+  streakBestEl.textContent = String(stats.streakBest);
+  avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
+
+  accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
+  accDegreesEl.textContent = pct(stats.degrees.correct, stats.degrees.total);
+}
+
+function recordAnswer(mode, isCorrect, responseTimeSec) {
+  // totals
+  stats.all.total += 1;
+  stats[mode].total += 1;
+  if (isCorrect) {
+    stats.all.correct += 1;
+    stats[mode].correct += 1;
+  }
+
+  // streak
+  if (isCorrect) {
+    stats.streakNow += 1;
+    if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow;
+  } else {
+    stats.streakNow = 0;
+  }
+
+  // response time
+  if (typeof responseTimeSec === "number" && isFinite(responseTimeSec) && responseTimeSec >= 0) {
+    stats.all.timeSum += responseTimeSec;
+    stats.all.timeCount += 1;
+    stats[mode].timeSum += responseTimeSec;
+    stats[mode].timeCount += 1;
+  }
+
+  updateStatsUI();
+}
+
+resetStatsBtn.addEventListener("click", () => {
+  stats.all = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.thirds = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.degrees = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.streakNow = 0;
+  stats.streakBest = 0;
+  updateStatsUI();
+});
+
+/* ===================== TABS / MODES ===================== */
+const tabThirds = document.getElementById("tabThirds");
+const tabDegrees = document.getElementById("tabDegrees");
+const panelThirds = document.getElementById("panelThirds");
+const panelDegrees = document.getElementById("panelDegrees");
+
+let activeMode = "thirds"; // "thirds" | "degrees"
+
+function setMode(mode) {
+  activeMode = mode;
+  tabThirds.classList.toggle("active", mode === "thirds");
+  tabDegrees.classList.toggle("active", mode === "degrees");
+  panelThirds.classList.toggle("active", mode === "thirds");
+  panelDegrees.classList.toggle("active", mode === "degrees");
+  statusEl.textContent = (mode === "thirds") ? "מצב 1 פעיל." : "מצב 2 פעיל.";
+}
+
+tabThirds.addEventListener("click", () => setMode("thirds"));
+tabDegrees.addEventListener("click", () => setMode("degrees"));
+
+/* ===================== MODE 1: THIRDS ===================== */
+const playBtn = document.getElementById("playBtn");
+const replayBtn = document.getElementById("replayBtn");
+const majorBtn = document.getElementById("majorBtn");
+const minorBtn = document.getElementById("minorBtn");
+const asChordChk = document.getElementById("asChord");
+const randomStyleChk = document.getElementById("randomStyle");
+const lowNote = document.getElementById("lowNote");
+const highNote = document.getElementById("highNote");
+const rangeLabel = document.getElementById("rangeLabel");
+const avoidBlackRoot = document.getElementById("avoidBlackRoot");
+
+let thirds_root = null;
+let thirds_isMajor = null;
+let thirds_questionStart = null;
+
+function isWhiteKey(midi) {
+  const pc = ((midi % 12) + 12) % 12;
+  return ![1,3,6,8,10].includes(pc);
+}
+
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+function pickRandomRoot(low, high, whiteOnly) {
+  low = clamp(low, 24, 96);
+  high = clamp(high, 24, 96);
+  if (high < low) { const t = low; low = high; high = t; }
+  const maxRoot = high - 4;
+  const minRoot = low;
+  if (maxRoot < minRoot) return 60;
+
+  if (!whiteOnly) return randInt(minRoot, maxRoot);
+
+  for (let i = 0; i < 30; i++) {
+    const m = randInt(minRoot, maxRoot);
+    if (isWhiteKey(m)) return m;
+  }
+  return randInt(minRoot, maxRoot);
+}
+
+function midiName(m) {
+  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const pc = ((m % 12) + 12) % 12;
+  const oct = Math.floor(m / 12) - 1;
+  return names[pc] + oct;
+}
+
+function updateRangeLabel() {
+  const lo = Number(lowNote.value);
+  const hi = Number(highNote.value);
+  const a = Math.min(lo, hi);
+  const b = Math.max(lo, hi);
+  rangeLabel.textContent = midiName(a) + " עד " + midiName(b);
+}
+lowNote.addEventListener("input", updateRangeLabel);
+highNote.addEventListener("input", updateRangeLabel);
+updateRangeLabel();
+
+function chooseAsChordNow() {
+  if (randomStyleChk.checked) return Math.random() < 0.5;
+  return asChordChk.checked;
+}
+
+async function thirds_playCurrent() {
+  if (thirds_root === null || thirds_isMajor === null) return;
+
+  const f1 = midiToFreq(thirds_root);
+  const f2 = midiToFreq(thirds_root + (thirds_isMajor ? 4 : 3));
+
+  const asChordNow = chooseAsChordNow();
+  if (asChordNow) await playTwoSimul(f1, f2);
+  else await playTwoArp(f1, f2);
+
+  statusEl.textContent = "שמע → ענה מז'ור/מינור.";
+}
+
+async function thirds_newRound() {
+  thirds_root = pickRandomRoot(Number(lowNote.value), Number(highNote.value), avoidBlackRoot.checked);
+  thirds_isMajor = Math.random() < 0.5;
+
+  majorBtn.disabled = false;
+  minorBtn.disabled = false;
+
+  clearResult();
+  thirds_questionStart = performance.now();
+
+  await thirds_playCurrent();
+}
+
+async function thirds_replayOrStart() {
+  if (thirds_root === null || thirds_isMajor === null) {
+    await thirds_newRound();
+    return;
+  }
+  await thirds_playCurrent();
+}
+
+function thirds_answer(userSaysMajor) {
+  if (thirds_isMajor === null) return;
+
+  const correct = (userSaysMajor === thirds_isMajor);
+
+  const userText = userSaysMajor ? "מז'ור" : "מינור";
+  const correctText = thirds_isMajor ? "מז'ור" : "מינור";
+
+  statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
+  setBigAnswer(correctText);
+  setResult(userText, correctText, correct);
+
+  majorBtn.disabled = true;
+  minorBtn.disabled = true;
+
+  const rt = (typeof thirds_questionStart === "number") ? (performance.now() - thirds_questionStart) / 1000 : null;
+  recordAnswer("thirds", correct, rt);
+}
+
+playBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_newRound(); });
+replayBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_replayOrStart(); });
+majorBtn.addEventListener("click", () => thirds_answer(true));
+minorBtn.addEventListener("click", () => thirds_answer(false));
+
+/* ===================== MODE 2: DEGREES ===================== */
+const degPlayBtn = document.getElementById("degPlayBtn");
+const degReplayBtn = document.getElementById("degReplayBtn");
+const playTonicBtn = document.getElementById("playTonicBtn");
+const degAnswers = document.getElementById("degAnswers");
+
+const DEGREE_PCS = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
+const TONIC_MIDI = 60;
+
+let deg_degree = null;
+let deg_midi = null;
+let deg_questionStart = null;
+
+function degrees_buildButtons() {
+  for (let i = 1; i <= 7; i++) {
+    const b = document.createElement("button");
+    b.textContent = String(i);
+    b.dataset.degree = String(i);
+    b.addEventListener("click", () => degrees_answer(i));
+    degAnswers.appendChild(b);
+  }
+}
+degrees_buildButtons();
+
+function degrees_setAnswerButtonsEnabled(enabled) {
+  const btns = degAnswers.querySelectorAll("button");
+  btns.forEach(b => { b.disabled = !enabled; });
+}
+
+async function degrees_playTonic() {
+  await playSingle(TONIC_MIDI, 0.8, 0.14);
+  statusEl.textContent = "נוגן דו (1) לרפרנס.";
+}
+
+async function degrees_playCurrent() {
+  if (deg_midi === null) return;
+  await playSingle(deg_midi, 0.9, 0.14);
+  statusEl.textContent = "שמע → איזה דרגה זה? (1–7)";
+}
+
+async function degrees_newRound() {
+  deg_degree = 1 + Math.floor(Math.random() * 7);
+
+  const octaveShift = (Math.random() < 0.5) ? -12 : +12;
+  const pcOffset = DEGREE_PCS[deg_degree - 1];
+  deg_midi = TONIC_MIDI + pcOffset + octaveShift;
+
+  degrees_setAnswerButtonsEnabled(true);
+
+  clearResult();
+  deg_questionStart = performance.now();
+
+  await degrees_playCurrent();
+}
+
+async function degrees_replayOrStart() {
+  if (deg_midi === null) {
+    await degrees_newRound();
+    return;
+  }
+  await degrees_playCurrent();
+}
+
+function degrees_answer(userDegree) {
+  if (deg_degree === null) return;
+
+  const correct = (userDegree === deg_degree);
+
+  const userText = String(userDegree);
+  const correctText = String(deg_degree);
+
+  statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
+  setBigAnswer(correctText);
+  setResult(userText, correctText, correct);
+
+  degrees_setAnswerButtonsEnabled(false);
+
+  const rt = (typeof deg_questionStart === "number") ? (performance.now() - deg_questionStart) / 1000 : null;
+  recordAnswer("degrees", correct, rt);
+}
+
+degPlayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_newRound(); });
+degReplayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_replayOrStart(); });
+playTonicBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_playTonic(); });
+
+/* ===================== KEYBOARD (layout independent) ===================== */
+window.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-  if (e.code === "Space") { e.preventDefault(); newRound(); }
-  if (e.code === "KeyR") { e.preventDefault(); replay(); }
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+  if (tag === "input" || tag === "textarea" || tag === "select") return;
 
-  if (e.code === "KeyF" || e.code === "KeyM") {
-    if (!document.getElementById("major").disabled) answer(true);
+  const code = e.code;
+
+  // mode switch
+  if (code === "F1") { setMode("thirds"); return; }
+  if (code === "F2") { setMode("degrees"); return; }
+
+  // play random
+  if (code === "Space") {
+    e.preventDefault();
+    if (activeMode === "thirds") { thirds_newRound(); }
+    else { degrees_newRound(); }
+    return;
   }
-  if (e.code === "KeyD" || e.code === "KeyN") {
-    if (!document.getElementById("minor").disabled) answer(false);
+
+  // replay
+  if (code === "KeyR") {
+    e.preventDefault();
+    if (activeMode === "thirds") { thirds_replayOrStart(); }
+    else { degrees_replayOrStart(); }
+    return;
+  }
+
+  if (activeMode === "thirds") {
+    // major
+    if (code === "KeyM" || code === "KeyF") {
+      e.preventDefault();
+      if (!majorBtn.disabled) thirds_answer(true);
+      return;
+    }
+    // minor
+    if (code === "KeyN" || code === "KeyD") {
+      e.preventDefault();
+      if (!minorBtn.disabled) thirds_answer(false);
+      return;
+    }
+    return;
+  }
+
+  if (activeMode === "degrees") {
+    // tonic
+    if (code === "KeyC") {
+      e.preventDefault();
+      degrees_playTonic();
+      return;
+    }
+    // answers 1..7
+    if (code.startsWith("Digit")) {
+      const d = Number(code.slice(5));
+      if (d >= 1 && d <= 7) {
+        const btn = degAnswers.querySelector(`button[data-degree="${d}"]`);
+        if (btn && !btn.disabled) degrees_answer(d);
+      }
+      return;
+    }
   }
 });
+
+// initial UI
+clearResult();
+updateStatsUI();
 </script>
 
 </body>
