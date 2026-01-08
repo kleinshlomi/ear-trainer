@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>אימון אוזן</title>
   <style>
-    body { font-family: system-ui, Arial; padding: 20px; max-width: 920px; margin: auto; }
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 980px; margin: auto; }
     button { padding: 10px 14px; margin: 6px 6px 6px 0; font-size: 16px; }
     .row { margin-top: 10px; }
     .tabs { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -22,7 +22,6 @@
     input[type="range"] { width: 260px; }
     label { display: block; margin-top: 10px; }
 
-    /* degrees buttons left-to-right like piano */
     .answersRow {
       display: flex;
       direction: ltr;
@@ -33,7 +32,6 @@
     }
     .answersRow button { min-width: 64px; }
 
-    /* fixed result panel */
     .resultPanel {
       margin-top: 12px;
       padding: 12px 14px;
@@ -65,7 +63,6 @@
     .mark.bad { color: #b30000; }
     .mark.neutral { color: #666; }
 
-    /* stats panel */
     .statsPanel {
       margin-top: 12px;
       padding: 12px 14px;
@@ -76,10 +73,10 @@
       display: flex;
       flex-wrap: wrap;
       gap: 14px 22px;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
     }
-    .stat { min-width: 210px; }
+    .stat { min-width: 220px; }
     .stat b { font-weight: 900; }
     .btnDanger {
       border: 1px solid #b30000;
@@ -87,6 +84,20 @@
       background: transparent;
       border-radius: 10px;
     }
+
+    .miniTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 13px;
+    }
+    .miniTable th, .miniTable td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .miniTable th { font-weight: 900; background: #f6f6f6; }
   </style>
 </head>
 <body>
@@ -102,12 +113,13 @@
     קיצורים (לפי מקש פיזי, לא תלוי שפה):<br/>
     <kbd>Space</kbd> = נגן רנדומלי · <kbd>R</kbd> = נגן שוב · מעבר מצבים: <kbd>F1</kbd> מצב 1, <kbd>F2</kbd> מצב 2.<br/>
     מצב 1: מז'ור = <kbd>M</kbd> או <kbd>F</kbd> · מינור = <kbd>N</kbd> או <kbd>D</kbd>.<br/>
-    מצב 2: תשובה = <kbd>1</kbd>…<kbd>7</kbd> · רפרנס דו = <kbd>C</kbd>.
+    מצב 2: תשובה = <kbd>1</kbd>…<kbd>7</kbd> · רפרנס דו = <kbd>C</kbd>.<br/>
+    פסנתר: נטען מהקובץ <b>assets/piano_C4.mp3</b>.
   </div>
 
   <hr />
 
-  <!-- ===================== MODE 1: THIRDS ===================== -->
+  <!-- MODE 1 -->
   <section class="panel active" id="panelThirds">
     <h3>מצב 1: טרצה גדולה/קטנה (בסיס רנדומלי)</h3>
 
@@ -144,7 +156,7 @@
     </label>
   </section>
 
-  <!-- ===================== MODE 2: DEGREES ===================== -->
+  <!-- MODE 2 -->
   <section class="panel" id="panelDegrees">
     <h3>מצב 2: דרגות בסולם דו מז'ור (1–7)</h3>
 
@@ -184,8 +196,29 @@
       <div class="stat">רצף נכון: <b><span id="streakNow">0</span></b> · שיא: <b><span id="streakBest">0</span></b></div>
       <div class="stat">ממוצע זמן תגובה: <b><span id="avgTimeAll">—</span></b></div>
 
-      <div class="stat">טרצות: <b><span id="accThirds">—</span></b></div>
-      <div class="stat">דרגות: <b><span id="accDegrees">—</span></b></div>
+      <div class="stat">טרצות (דיוק): <b><span id="accThirds">—</span></b></div>
+      <div class="stat">דרגות (דיוק): <b><span id="accDegrees">—</span></b></div>
+
+      <div class="stat">טעויות לפי תשובה נכונה (טרצות):<br/><b>מז'ור:</b> <span id="errMajor">0</span> · <b>מינור:</b> <span id="errMinor">0</span></div>
+
+      <div class="stat">
+        התפלגות תשובות (טרצות):
+        <table class="miniTable">
+          <thead><tr><th>ענית</th><th>כמות</th></tr></thead>
+          <tbody>
+            <tr><td>מז'ור</td><td id="thirdsAnsMajor">0</td></tr>
+            <tr><td>מינור</td><td id="thirdsAnsMinor">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="stat">
+        התפלגות (דרגות):
+        <table class="miniTable">
+          <thead><tr><th>דרגה</th><th>ענית</th><th>נכון היה</th></tr></thead>
+          <tbody id="degDistBody"></tbody>
+        </table>
+      </div>
 
       <div class="stat">
         <button class="btnDanger" id="resetStatsBtn">איפוס סטטיסטיקה</button>
@@ -194,8 +227,14 @@
   </div>
 
 <script>
-/* ===================== AUDIO ===================== */
+/* ===================== PIANO SAMPLER ===================== */
 let audioCtx = null;
+let pianoBuffer = null;
+let pianoLoadPromise = null;
+
+// Single base sample (C4) expected at this path:
+const PIANO_SAMPLE_URL = "assets/piano_C4.mp3";
+const BASE_MIDI = 60; // C4
 
 function getCtx() {
   if (!audioCtx) {
@@ -205,52 +244,70 @@ function getCtx() {
   return audioCtx;
 }
 
-async function ensureAudio() {
+async function ensureAudioReady() {
   const ctx = getCtx();
   if (ctx.state === "suspended") {
     await ctx.resume();
   }
+  if (!pianoLoadPromise) pianoLoadPromise = loadPianoSample();
+  await pianoLoadPromise;
   return ctx;
 }
 
-function midiToFreq(m) {
-  return 440 * Math.pow(2, (m - 69) / 12);
+async function loadPianoSample() {
+  try {
+    const ctx = getCtx();
+    const res = await fetch(PIANO_SAMPLE_URL, { cache: "no-cache" });
+    if (!res.ok) throw new Error("Sample fetch failed: " + res.status);
+    const arr = await res.arrayBuffer();
+    pianoBuffer = await ctx.decodeAudioData(arr);
+  } catch (err) {
+    pianoBuffer = null;
+    statusEl.textContent = "שגיאה: לא נמצא/נטען קובץ פסנתר (assets/piano_C4.mp3).";
+    throw err;
+  }
 }
 
-function playToneSync(ctx, freq, startTime, dur, gain) {
-  const osc = ctx.createOscillator();
+// Pitch shift ratio
+function rateForMidi(midi) {
+  return Math.pow(2, (midi - BASE_MIDI) / 12);
+}
+
+function playPianoNoteSync(ctx, midi, startTime, durSec, gainVal) {
+  if (!pianoBuffer) return;
+
+  const src = ctx.createBufferSource();
+  src.buffer = pianoBuffer;
+  src.playbackRate.setValueAtTime(rateForMidi(midi), startTime);
+
   const g = ctx.createGain();
-
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(freq, startTime);
-
   g.gain.setValueAtTime(0.0001, startTime);
-  g.gain.linearRampToValueAtTime(gain, startTime + 0.01);
-  g.gain.linearRampToValueAtTime(0.0001, startTime + dur);
+  g.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
+  g.gain.linearRampToValueAtTime(0.0001, startTime + durSec);
 
-  osc.connect(g).connect(ctx.destination);
-  osc.start(startTime);
-  osc.stop(startTime + dur + 0.03);
+  src.connect(g).connect(ctx.destination);
+  src.start(startTime);
+  src.stop(startTime + durSec + 0.05);
 }
 
-async function playTwoSimul(f1, f2) {
-  const ctx = await ensureAudio();
+async function playTwoSimulMidi(m1, m2) {
+  const ctx = await ensureAudioReady();
   const now = ctx.currentTime + 0.03;
-  playToneSync(ctx, f1, now, 0.85, 0.12);
-  playToneSync(ctx, f2, now, 0.85, 0.12);
+  playPianoNoteSync(ctx, m1, now, 0.95, 0.85);
+  playPianoNoteSync(ctx, m2, now, 0.95, 0.85);
 }
 
-async function playTwoArp(f1, f2) {
-  const ctx = await ensureAudio();
+async function playTwoArpMidi(m1, m2) {
+  const ctx = await ensureAudioReady();
   const now = ctx.currentTime + 0.03;
-  playToneSync(ctx, f1, now, 0.45, 0.12);
-  playToneSync(ctx, f2, now + 0.18, 0.60, 0.12);
+  playPianoNoteSync(ctx, m1, now, 0.55, 0.85);
+  playPianoNoteSync(ctx, m2, now + 0.20, 0.75, 0.85);
 }
 
-async function playSingle(midi, dur, gain) {
-  const ctx = await ensureAudio();
+async function playSingleMidi(m, durSec, gainVal) {
+  const ctx = await ensureAudioReady();
   const now = ctx.currentTime + 0.03;
-  playToneSync(ctx, midiToFreq(midi), now, dur, gain);
+  playPianoNoteSync(ctx, m, now, durSec, gainVal);
 }
 
 /* ===================== UI ELEMENTS ===================== */
@@ -294,6 +351,13 @@ const streakBestEl = document.getElementById("streakBest");
 const avgTimeAllEl = document.getElementById("avgTimeAll");
 const accThirdsEl = document.getElementById("accThirds");
 const accDegreesEl = document.getElementById("accDegrees");
+
+const errMajorEl = document.getElementById("errMajor");
+const errMinorEl = document.getElementById("errMinor");
+const thirdsAnsMajorEl = document.getElementById("thirdsAnsMajor");
+const thirdsAnsMinorEl = document.getElementById("thirdsAnsMinor");
+
+const degDistBody = document.getElementById("degDistBody");
 const resetStatsBtn = document.getElementById("resetStatsBtn");
 
 const stats = {
@@ -302,6 +366,14 @@ const stats = {
   degrees: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
   streakNow: 0,
   streakBest: 0,
+
+  thirdsWrongWhenCorrectWasMajor: 0,
+  thirdsWrongWhenCorrectWasMinor: 0,
+  thirdsAnsweredMajor: 0,
+  thirdsAnsweredMinor: 0,
+
+  degreesAnswered: Array(8).fill(0),
+  degreesCorrectWas: Array(8).fill(0),
 };
 
 function pct(c, t) {
@@ -314,6 +386,18 @@ function avgSec(sum, count) {
   return (sum / count).toFixed(2) + "s";
 }
 
+function renderDegreeDist() {
+  let html = "";
+  for (let d = 1; d <= 7; d++) {
+    html += "<tr>"
+      + "<td>" + d + "</td>"
+      + "<td>" + stats.degreesAnswered[d] + "</td>"
+      + "<td>" + stats.degreesCorrectWas[d] + "</td>"
+      + "</tr>";
+  }
+  degDistBody.innerHTML = html;
+}
+
 function updateStatsUI() {
   accAllEl.textContent = pct(stats.all.correct, stats.all.total);
   streakNowEl.textContent = String(stats.streakNow);
@@ -322,10 +406,17 @@ function updateStatsUI() {
 
   accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
   accDegreesEl.textContent = pct(stats.degrees.correct, stats.degrees.total);
+
+  errMajorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMajor);
+  errMinorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMinor);
+
+  thirdsAnsMajorEl.textContent = String(stats.thirdsAnsweredMajor);
+  thirdsAnsMinorEl.textContent = String(stats.thirdsAnsweredMinor);
+
+  renderDegreeDist();
 }
 
-function recordAnswer(mode, isCorrect, responseTimeSec) {
-  // totals
+function recordAnswerBase(mode, isCorrect, responseTimeSec) {
   stats.all.total += 1;
   stats[mode].total += 1;
   if (isCorrect) {
@@ -333,7 +424,6 @@ function recordAnswer(mode, isCorrect, responseTimeSec) {
     stats[mode].correct += 1;
   }
 
-  // streak
   if (isCorrect) {
     stats.streakNow += 1;
     if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow;
@@ -341,14 +431,32 @@ function recordAnswer(mode, isCorrect, responseTimeSec) {
     stats.streakNow = 0;
   }
 
-  // response time
   if (typeof responseTimeSec === "number" && isFinite(responseTimeSec) && responseTimeSec >= 0) {
     stats.all.timeSum += responseTimeSec;
     stats.all.timeCount += 1;
     stats[mode].timeSum += responseTimeSec;
     stats[mode].timeCount += 1;
   }
+}
 
+function recordThirds(userSaysMajor, correctIsMajor, isCorrect, rt) {
+  if (userSaysMajor) stats.thirdsAnsweredMajor += 1;
+  else stats.thirdsAnsweredMinor += 1;
+
+  if (!isCorrect) {
+    if (correctIsMajor) stats.thirdsWrongWhenCorrectWasMajor += 1;
+    else stats.thirdsWrongWhenCorrectWasMinor += 1;
+  }
+
+  recordAnswerBase("thirds", isCorrect, rt);
+  updateStatsUI();
+}
+
+function recordDegrees(userDegree, correctDegree, isCorrect, rt) {
+  stats.degreesAnswered[userDegree] += 1;
+  stats.degreesCorrectWas[correctDegree] += 1;
+
+  recordAnswerBase("degrees", isCorrect, rt);
   updateStatsUI();
 }
 
@@ -358,6 +466,15 @@ resetStatsBtn.addEventListener("click", () => {
   stats.degrees = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
   stats.streakNow = 0;
   stats.streakBest = 0;
+
+  stats.thirdsWrongWhenCorrectWasMajor = 0;
+  stats.thirdsWrongWhenCorrectWasMinor = 0;
+  stats.thirdsAnsweredMajor = 0;
+  stats.thirdsAnsweredMinor = 0;
+
+  stats.degreesAnswered = Array(8).fill(0);
+  stats.degreesCorrectWas = Array(8).fill(0);
+
   updateStatsUI();
 });
 
@@ -367,7 +484,7 @@ const tabDegrees = document.getElementById("tabDegrees");
 const panelThirds = document.getElementById("panelThirds");
 const panelDegrees = document.getElementById("panelDegrees");
 
-let activeMode = "thirds"; // "thirds" | "degrees"
+let activeMode = "thirds";
 
 function setMode(mode) {
   activeMode = mode;
@@ -401,7 +518,6 @@ function isWhiteKey(midi) {
   const pc = ((midi % 12) + 12) % 12;
   return ![1,3,6,8,10].includes(pc);
 }
-
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
 
@@ -448,12 +564,12 @@ function chooseAsChordNow() {
 async function thirds_playCurrent() {
   if (thirds_root === null || thirds_isMajor === null) return;
 
-  const f1 = midiToFreq(thirds_root);
-  const f2 = midiToFreq(thirds_root + (thirds_isMajor ? 4 : 3));
+  const m1 = thirds_root;
+  const m2 = thirds_root + (thirds_isMajor ? 4 : 3);
 
   const asChordNow = chooseAsChordNow();
-  if (asChordNow) await playTwoSimul(f1, f2);
-  else await playTwoArp(f1, f2);
+  if (asChordNow) await playTwoSimulMidi(m1, m2);
+  else await playTwoArpMidi(m1, m2);
 
   statusEl.textContent = "שמע → ענה מז'ור/מינור.";
 }
@@ -495,7 +611,7 @@ function thirds_answer(userSaysMajor) {
   minorBtn.disabled = true;
 
   const rt = (typeof thirds_questionStart === "number") ? (performance.now() - thirds_questionStart) / 1000 : null;
-  recordAnswer("thirds", correct, rt);
+  recordThirds(userSaysMajor, thirds_isMajor, correct, rt);
 }
 
 playBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_newRound(); });
@@ -509,7 +625,7 @@ const degReplayBtn = document.getElementById("degReplayBtn");
 const playTonicBtn = document.getElementById("playTonicBtn");
 const degAnswers = document.getElementById("degAnswers");
 
-const DEGREE_PCS = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
+const DEGREE_PCS = [0, 2, 4, 5, 7, 9, 11];
 const TONIC_MIDI = 60;
 
 let deg_degree = null;
@@ -533,13 +649,13 @@ function degrees_setAnswerButtonsEnabled(enabled) {
 }
 
 async function degrees_playTonic() {
-  await playSingle(TONIC_MIDI, 0.8, 0.14);
+  await playSingleMidi(TONIC_MIDI, 0.9, 0.9);
   statusEl.textContent = "נוגן דו (1) לרפרנס.";
 }
 
 async function degrees_playCurrent() {
   if (deg_midi === null) return;
-  await playSingle(deg_midi, 0.9, 0.14);
+  await playSingleMidi(deg_midi, 1.0, 0.9);
   statusEl.textContent = "שמע → איזה דרגה זה? (1–7)";
 }
 
@@ -581,7 +697,7 @@ function degrees_answer(userDegree) {
   degrees_setAnswerButtonsEnabled(false);
 
   const rt = (typeof deg_questionStart === "number") ? (performance.now() - deg_questionStart) / 1000 : null;
-  recordAnswer("degrees", correct, rt);
+  recordDegrees(userDegree, deg_degree, correct, rt);
 }
 
 degPlayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_newRound(); });
@@ -597,11 +713,9 @@ window.addEventListener("keydown", (e) => {
 
   const code = e.code;
 
-  // mode switch
   if (code === "F1") { setMode("thirds"); return; }
   if (code === "F2") { setMode("degrees"); return; }
 
-  // play random
   if (code === "Space") {
     e.preventDefault();
     if (activeMode === "thirds") { thirds_newRound(); }
@@ -609,7 +723,6 @@ window.addEventListener("keydown", (e) => {
     return;
   }
 
-  // replay
   if (code === "KeyR") {
     e.preventDefault();
     if (activeMode === "thirds") { thirds_replayOrStart(); }
@@ -618,13 +731,11 @@ window.addEventListener("keydown", (e) => {
   }
 
   if (activeMode === "thirds") {
-    // major
     if (code === "KeyM" || code === "KeyF") {
       e.preventDefault();
       if (!majorBtn.disabled) thirds_answer(true);
       return;
     }
-    // minor
     if (code === "KeyN" || code === "KeyD") {
       e.preventDefault();
       if (!minorBtn.disabled) thirds_answer(false);
@@ -634,13 +745,11 @@ window.addEventListener("keydown", (e) => {
   }
 
   if (activeMode === "degrees") {
-    // tonic
     if (code === "KeyC") {
       e.preventDefault();
       degrees_playTonic();
       return;
     }
-    // answers 1..7
     if (code.startsWith("Digit")) {
       const d = Number(code.slice(5));
       if (d >= 1 && d <= 7) {
@@ -652,7 +761,7 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-// initial UI
+// init
 clearResult();
 updateStatsUI();
 </script>
