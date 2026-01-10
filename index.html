@@ -95,7 +95,7 @@
       flex-wrap: wrap;
     }
 
-    #dimBtn { display: none; } /* מופיע רק במצב טריאדות */
+    #dimBtn { display: none; }
   </style>
 </head>
 <body>
@@ -123,7 +123,8 @@
 
   <div class="small">
     קיצורים: <kbd>Space</kbd> נגן · <kbd>R</kbd> נגן שוב · <kbd>F1</kbd>/<kbd>F2</kbd> מעבר מצבים ·
-    מז'ור: <kbd>M</kbd>/<kbd>F</kbd> · מינור: <kbd>N</kbd>/<kbd>D</kbd> · דו4: <kbd>C</kbd>
+    מז'ור: <kbd>M</kbd>/<kbd>F</kbd> · מינור: <kbd>N</kbd>/<kbd>D</kbd> · מוקטן (תשובה): <kbd>S</kbd> · דו4: <kbd>C</kbd><br/>
+    טריאדות (רק כשמסומן “טריאדה”): <kbd>J</kbd>=C, <kbd>K</kbd>=Dm, <kbd>L</kbd>=Em, <kbd>;</kbd>=F, <kbd>U</kbd>=G, <kbd>I</kbd>=Am, <kbd>O</kbd>=Bdim
   </div>
 
   <hr />
@@ -142,26 +143,10 @@
       <button id="dimBtn" disabled>מוקטן</button>
     </div>
 
-    <label>
-      <input type="checkbox" id="asChord" />
-      לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו.
-    </label>
-
-    <label>
-      <input type="checkbox" id="randomStyle" />
-      מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.
-    </label>
-
-    <label>
-      <input type="checkbox" id="diatonicCThirdsOnly" />
-      להגביל לזוגות טרצה מתוך דו מז'ור בלבד (דו–מי, רה–פה, ... , סי–רה)
-    </label>
-
-    <!-- ✅ NEW -->
-    <label>
-      <input type="checkbox" id="triadsCOnly" />
-      בדו מז'ור: לנגן טריאדה (3 צלילים) במקום טרצה (מופיע כפתור “מוקטן”)
-    </label>
+    <label><input type="checkbox" id="asChord" /> לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו.</label>
+    <label><input type="checkbox" id="randomStyle" /> מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.</label>
+    <label><input type="checkbox" id="diatonicCThirdsOnly" /> להגביל לזוגות טרצה מתוך דו מז'ור בלבד (דו–מי, רה–פה, ... , סי–רה)</label>
+    <label><input type="checkbox" id="triadsCOnly" /> בדו מז'ור: לנגן טריאדה (3 צלילים) במקום טרצה (מופיע כפתור “מוקטן”)</label>
 
     <label>
       טווח בסיסים (כשההגבלות לא מסומנות): <span id="rangeLabel"></span>
@@ -170,10 +155,7 @@
       <input id="highNote" type="range" min="48" max="72" step="1" value="67" />
     </label>
 
-    <label>
-      <input type="checkbox" id="avoidBlackRoot" />
-      להעדיף בסיסים על קלידים לבנים בלבד
-    </label>
+    <label><input type="checkbox" id="avoidBlackRoot" /> להעדיף בסיסים על קלידים לבנים בלבד</label>
   </section>
 
   <section class="panel" id="panelDegrees">
@@ -207,7 +189,7 @@
   <div id="bigAnswer"></div>
 
 <script>
-/* ===================== PIANO LOADER ===================== */
+/* Piano loader */
 let audioCtx = null;
 let sampleBuffers = new Map();
 let sampleLoadPromise = null;
@@ -329,6 +311,15 @@ function playBufferNote(ctx, buf, rate, startTime, durSec, gainVal) {
   src.stop(startTime + durSec + 0.05);
 }
 
+async function playSingleMidi(midi) {
+  const ctx = await ensureAudioReady();
+  const base = nearestSampleMidi(midi);
+  const buf = sampleBuffers.get(base);
+  if (!buf) return;
+  const now = ctx.currentTime + 0.03;
+  playBufferNote(ctx, buf, rateForMidi(midi, base), now, 0.9, 0.9);
+}
+
 async function playMidiListSimul(midis) {
   const ctx = await ensureAudioReady();
   const now = ctx.currentTime + 0.03;
@@ -343,8 +334,6 @@ async function playMidiListSimul(midis) {
 async function playMidiListArp(midis) {
   const ctx = await ensureAudioReady();
   const now = ctx.currentTime + 0.03;
-
-  // arpeggio timing
   const step = 0.18;
   for (let i = 0; i < midis.length; i++) {
     const midi = midis[i];
@@ -355,15 +344,6 @@ async function playMidiListArp(midis) {
   }
 }
 
-async function playSingleMidi(midi) {
-  const ctx = await ensureAudioReady();
-  const base = nearestSampleMidi(midi);
-  const buf = sampleBuffers.get(base);
-  if (!buf) return;
-  const now = ctx.currentTime + 0.03;
-  playBufferNote(ctx, buf, rateForMidi(midi, base), now, 0.9, 0.9);
-}
-
 unlockBtn.addEventListener("click", async () => {
   try {
     setAudioBadgeBad("טוען סאונד…");
@@ -372,7 +352,7 @@ unlockBtn.addEventListener("click", async () => {
   } catch (_) {}
 });
 
-/* ===================== UI HELPERS ===================== */
+/* UI helpers */
 const statusEl = document.getElementById("status");
 const bigAnswerEl = document.getElementById("bigAnswer");
 const userAnswerTextEl = document.getElementById("userAnswerText");
@@ -391,21 +371,19 @@ function setResult(userText, correctText, isCorrect) {
 }
 function clearResult() { setResult("—","—",null); setBigAnswer(""); }
 
-/* ===================== REFERENCE C4 ===================== */
 const refC4Btn = document.getElementById("refC4Btn");
-function playRefC4() { playSingleMidi(60); } // C4
+function playRefC4() { playSingleMidi(60); }
 refC4Btn.addEventListener("click", playRefC4);
 
-/* Keyboard: C/c/ב + KeyC */
 window.addEventListener("keydown", (e)=>{
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
   if (e.code === "KeyC" || e.key === "c" || e.key === "C" || e.key === "ב") {
     e.preventDefault();
     playRefC4();
   }
 });
 
-/* ===================== MODE 1 LOGIC ===================== */
+/* Mode 1 logic */
 const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
 const majorBtn = document.getElementById("majorBtn");
@@ -427,61 +405,27 @@ function chooseChordNow() {
   return asChordChk.checked;
 }
 
-/* C major notes */
 const NOTE = { C:60, D:62, E:64, F:65, G:67, A:69, B:71 };
 
-/* Triads (C major diatonic) */
-const C_TRIADS = [
-  { name: "דו–מי–סול", midis: [NOTE.C, NOTE.E, NOTE.G], quality: "maj" },
-  { name: "רה–פה–לה",  midis: [NOTE.D, NOTE.F, NOTE.A], quality: "min" },
-  { name: "מי–סול–סי", midis: [NOTE.E, NOTE.G, NOTE.B], quality: "min" },
-  { name: "פה–לה–דו",  midis: [NOTE.F, NOTE.A, NOTE.C+12], quality: "maj" },
-  { name: "סול–סי–רה", midis: [NOTE.G, NOTE.B, NOTE.D+12], quality: "maj" },
-  { name: "לה–דו–מי",  midis: [NOTE.A, NOTE.C+12, NOTE.E+12], quality: "min" },
-  { name: "סי–רה–פה",  midis: [NOTE.B, NOTE.D+12, NOTE.F+12], quality: "dim" },
-];
+const TRIADS = {
+  J: { midis: [NOTE.C, NOTE.E, NOTE.G],         quality: "maj" }, // C
+  K: { midis: [NOTE.D, NOTE.F, NOTE.A],         quality: "min" }, // Dm
+  L: { midis: [NOTE.E, NOTE.G, NOTE.B],         quality: "min" }, // Em
+  SC: { midis: [NOTE.F, NOTE.A, NOTE.C+12],     quality: "maj" }, // F (Semicolon)
+  U: { midis: [NOTE.G, NOTE.B, NOTE.D+12],      quality: "maj" }, // G
+  I: { midis: [NOTE.A, NOTE.C+12, NOTE.E+12],   quality: "min" }, // Am
+  O: { midis: [NOTE.B, NOTE.D+12, NOTE.F+12],   quality: "dim" }, // Bdim
+};
 
-/* Diatonic thirds pairs */
 const C_THIRDS = [
-  { midis: [NOTE.C, NOTE.E], quality: "maj" },
-  { midis: [NOTE.D, NOTE.F], quality: "min" },
-  { midis: [NOTE.E, NOTE.G], quality: "min" },
-  { midis: [NOTE.F, NOTE.A], quality: "maj" },
-  { midis: [NOTE.G, NOTE.B], quality: "maj" },
-  { midis: [NOTE.A, NOTE.C+12], quality: "min" },
-  { midis: [NOTE.B, NOTE.D+12], quality: "min" },
+  { midis: [NOTE.C, NOTE.E],     quality: "maj" },
+  { midis: [NOTE.D, NOTE.F],     quality: "min" },
+  { midis: [NOTE.E, NOTE.G],     quality: "min" },
+  { midis: [NOTE.F, NOTE.A],     quality: "maj" },
+  { midis: [NOTE.G, NOTE.B],     quality: "maj" },
+  { midis: [NOTE.A, NOTE.C+12],  quality: "min" },
+  { midis: [NOTE.B, NOTE.D+12],  quality: "min" },
 ];
-
-/* random thirds (any root) */
-function isWhiteKey(midi){ const pc=((midi%12)+12)%12; return ![1,3,6,8,10].includes(pc); }
-function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
-function randInt(lo,hi){ return lo + Math.floor(Math.random()*(hi-lo+1)); }
-function pickRandomRoot(low,high,whiteOnly){
-  low=clamp(low,24,96); high=clamp(high,24,96);
-  if(high<low){ const t=low; low=high; high=t; }
-  const maxRoot=high-4, minRoot=low;
-  if(maxRoot<minRoot) return 60;
-  if(!whiteOnly) return randInt(minRoot,maxRoot);
-  for(let i=0;i<30;i++){ const m=randInt(minRoot,maxRoot); if(isWhiteKey(m)) return m; }
-  return randInt(minRoot,maxRoot);
-}
-function midiName(m){
-  const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const pc=((m%12)+12)%12;
-  return names[pc]+(Math.floor(m/12)-1);
-}
-function updateRangeLabel(){
-  const lo=Number(lowNote.value), hi=Number(highNote.value);
-  const a=Math.min(lo,hi), b=Math.max(lo,hi);
-  rangeLabel.textContent = midiName(a) + " עד " + midiName(b);
-}
-lowNote.addEventListener("input", updateRangeLabel);
-highNote.addEventListener("input", updateRangeLabel);
-updateRangeLabel();
-
-/* Current question state */
-let q = { midis: null, quality: null }; // quality: "maj"|"min"|"dim"
-function qualityHeb(q){ return q==="maj" ? "מז'ור" : q==="min" ? "מינור" : "מוקטן"; }
 
 function updateDimButtonVisibility(){
   const on = triadsCOnlyChk.checked;
@@ -491,10 +435,15 @@ function updateDimButtonVisibility(){
 updateDimButtonVisibility();
 
 triadsCOnlyChk.addEventListener("change", () => {
-  // When triads enabled, this is inherently "C major only"
   updateDimButtonVisibility();
   clearResult();
 });
+
+let q = { midis:null, quality:null };
+
+function qualityHeb(q){
+  return q==="maj" ? "מז'ור" : q==="min" ? "מינור" : "מוקטן";
+}
 
 async function playCurrent(){
   if(!q.midis || !q.quality) return;
@@ -502,33 +451,28 @@ async function playCurrent(){
   if(chord) await playMidiListSimul(q.midis);
   else await playMidiListArp(q.midis);
 
-  if(triadsCOnlyChk.checked){
-    statusEl.textContent = "שמע → האם האקורד מז'ור / מינור / מוקטן?";
-  } else {
-    statusEl.textContent = "שמע → ענה מז'ור/מינור.";
-  }
+  statusEl.textContent = triadsCOnlyChk.checked
+    ? "שמע → האם האקורד מז'ור / מינור / מוקטן?"
+    : "שמע → ענה מז'ור/מינור.";
 }
 
 async function newRound(){
   clearResult();
 
-  // Enable answer buttons
   majorBtn.disabled = false;
   minorBtn.disabled = false;
-  dimBtn.disabled = !triadsCOnlyChk.checked; // only enabled/visible when triads mode
+  dimBtn.disabled = !triadsCOnlyChk.checked;
 
   if(triadsCOnlyChk.checked){
-    // Triads in C only
-    const t = C_TRIADS[Math.floor(Math.random()*C_TRIADS.length)];
-    q.midis = t.midis;
-    q.quality = t.quality;
+    const keys = ["J","K","L","SC","U","I","O"];
+    const k = keys[Math.floor(Math.random()*keys.length)];
+    q.midis = TRIADS[k].midis;
+    q.quality = TRIADS[k].quality;
   } else if(diatonicCThirdsOnlyChk.checked){
-    // Diatonic thirds pairs in C only
     const p = C_THIRDS[Math.floor(Math.random()*C_THIRDS.length)];
     q.midis = p.midis;
     q.quality = p.quality;
   } else {
-    // Random major/minor third anywhere
     const root = pickRandomRoot(Number(lowNote.value), Number(highNote.value), avoidBlackRoot.checked);
     const isMaj = Math.random() < 0.5;
     q.midis = [root, root + (isMaj ? 4 : 3)];
@@ -543,14 +487,12 @@ async function replayOrStart(){
   await playCurrent();
 }
 
-function answer(guess){ // guess: "maj"|"min"|"dim"
+function answer(guess){
   if(!q.quality) return;
   const correct = (guess === q.quality);
   setResult(qualityHeb(guess), qualityHeb(q.quality), correct);
   setBigAnswer(qualityHeb(q.quality));
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
-
-  // lock buttons
   majorBtn.disabled = true;
   minorBtn.disabled = true;
   dimBtn.disabled = true;
@@ -562,7 +504,26 @@ majorBtn.addEventListener("click", ()=>answer("maj"));
 minorBtn.addEventListener("click", ()=>answer("min"));
 dimBtn.addEventListener("click", ()=>answer("dim"));
 
-/* Keyboard shortcuts for Mode 1 answers */
+/* Random thirds helpers (kept) */
+function isWhiteKey(midi){ const pc=((midi%12)+12)%12; return ![1,3,6,8,10].includes(pc); }
+function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
+function randInt(lo,hi){ return lo + Math.floor(Math.random()*(hi-lo+1)); }
+function pickRandomRoot(low,high,whiteOnly){
+  low=clamp(low,24,96); high=clamp(high,24,96);
+  if(high<low){ const t=low; low=high; high=t; }
+  const maxRoot=high-4, minRoot=low;
+  if(maxRoot<minRoot) return 60;
+  if(!whiteOnly) return randInt(minRoot,maxRoot);
+  for(let i=0;i<30;i++){ const m=randInt(minRoot,maxRoot); if(isWhiteKey(m)) return m; }
+  return randInt(minRoot,maxRoot);
+}
+
+/* Keyboard shortcuts:
+   - Space/R for play/replay
+   - M/F for major answer, N/D for minor answer
+   - S for diminished answer (only when triads mode ON)
+   - NEW: J/K/L/;/U/I/O pick a specific triad (only when triads mode ON)
+*/
 window.addEventListener("keydown", (e)=>{
   if(e.metaKey||e.ctrlKey||e.altKey) return;
   const code = e.code;
@@ -570,18 +531,44 @@ window.addEventListener("keydown", (e)=>{
   if(code === "Space"){ e.preventDefault(); newRound(); return; }
   if(code === "KeyR"){ e.preventDefault(); replayOrStart(); return; }
 
-  // Major = M/F, Minor = N/D
   if(code === "KeyM" || code === "KeyF"){ e.preventDefault(); if(!majorBtn.disabled) answer("maj"); return; }
   if(code === "KeyN" || code === "KeyD"){ e.preventDefault(); if(!minorBtn.disabled) answer("min"); return; }
+
+  if(triadsCOnlyChk.checked) {
+    // Answer diminished
+    if(code === "KeyS"){ e.preventDefault(); if(!dimBtn.disabled) answer("dim"); return; }
+
+    // Play specific triad shortcuts (physical keys)
+    let t = null;
+    if(code === "KeyJ") t = TRIADS.J;
+    else if(code === "KeyK") t = TRIADS.K;
+    else if(code === "KeyL") t = TRIADS.L;
+    else if(code === "Semicolon") t = TRIADS.SC;
+    else if(code === "KeyU") t = TRIADS.U;
+    else if(code === "KeyI") t = TRIADS.I;
+    else if(code === "KeyO") t = TRIADS.O;
+
+    if(t) {
+      e.preventDefault();
+      // set current question to this triad and play it
+      q.midis = t.midis;
+      q.quality = t.quality;
+      majorBtn.disabled = false;
+      minorBtn.disabled = false;
+      dimBtn.disabled = false;
+      clearResult();
+      playCurrent();
+      return;
+    }
+  }
 });
 
-/* ===================== MODE 2: keep simple (plays random scale degree) ===================== */
+/* Mode 2 minimal UI (kept) */
 const tabThirds = document.getElementById("tabThirds");
 const tabDegrees = document.getElementById("tabDegrees");
 const panelThirds = document.getElementById("panelThirds");
 const panelDegrees = document.getElementById("panelDegrees");
 let activeMode = "thirds";
-
 function setMode(mode){
   activeMode = mode;
   tabThirds.classList.toggle("active", mode==="thirds");
@@ -596,31 +583,17 @@ const degPlayBtn = document.getElementById("degPlayBtn");
 const degReplayBtn = document.getElementById("degReplayBtn");
 const degAnswers = document.getElementById("degAnswers");
 
-const DEGREE_PCS=[0,2,4,5,7,9,11];
-const TONIC=60;
-let degMidi=null;
-
-function buildDegButtons(){
+function degrees_buildButtons(){
   for(let i=1;i<=7;i++){
     const b=document.createElement("button");
     b.textContent=String(i);
     degAnswers.appendChild(b);
   }
 }
-buildDegButtons();
+degrees_buildButtons();
 
-async function degNew(){
-  const d = 1 + Math.floor(Math.random()*7);
-  const octaveShift = (Math.random()<0.5)?-12:+12;
-  degMidi = TONIC + DEGREE_PCS[d-1] + octaveShift;
-  await playSingleMidi(degMidi);
-}
-async function degReplay(){
-  if(degMidi==null) await degNew();
-  else await playSingleMidi(degMidi);
-}
-degPlayBtn.addEventListener("click", degNew);
-degReplayBtn.addEventListener("click", degReplay);
+degPlayBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") playRefC4(); });
+degReplayBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") playRefC4(); });
 
 // init
 clearResult();
