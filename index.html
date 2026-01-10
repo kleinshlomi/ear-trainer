@@ -158,7 +158,6 @@
 
   <div class="small">
     <kbd>Space</kbd> נגן · <kbd>R</kbd> נגן שוב · דו4: <kbd>C</kbd><br/>
-    Toggle “אקורד בו־זמנית”: <kbd>E</kbd>/<kbd>e</kbd>/<kbd>ק</kbd><br/>
     טרצות: מז'ור <kbd>M</kbd>/<kbd>F</kbd> · מינור <kbd>N</kbd>/<kbd>D</kbd><br/>
     טריאדות־דרגות: 1=<kbd>J</kbd> · 2=<kbd>K</kbd> · 3=<kbd>L</kbd> · 4=<kbd>;</kbd> · 5=<kbd>U</kbd> · 6=<kbd>I</kbd> · 7=<kbd>O</kbd>
   </div>
@@ -199,7 +198,7 @@
   </section>
 
   <section class="panel" id="panelDegrees">
-    <h3>מצב 2 (כרגע מינימלי)</h3>
+    <h3>מצב 2: דרגות בסולם דו מז'ור (כרגע מינימלי)</h3>
     <div class="row">
       <button id="degPlayBtn">נגן</button>
       <button id="degReplayBtn">נגן שוב</button>
@@ -237,9 +236,7 @@
 
     <div class="small" style="margin-top:10px; font-weight:900;">טריאדות־דרגות: סטטיסטיקה לפי דרגה</div>
     <table class="miniTable">
-      <thead>
-        <tr><th>דרגה</th><th>סימון</th><th>נשאל</th><th>נכון</th><th>דיוק</th></tr>
-      </thead>
+      <thead><tr><th>דרגה</th><th>סימון</th><th>נשאל</th><th>נכון</th><th>דיוק</th></tr></thead>
       <tbody id="triadDegreeStatsBody"></tbody>
     </table>
   </div>
@@ -410,7 +407,7 @@ function setResult(userText, correctText, isCorrect) {
 }
 function clearResult() { setResult("—","—",null); setBigAnswer(""); }
 
-/* ===================== STATS ===================== */
+/* ===================== STATS + PER-DEGREE ===================== */
 const accAllEl = document.getElementById("accAll");
 const accThirdsEl = document.getElementById("accThirds");
 const accTriadsEl = document.getElementById("accTriads");
@@ -494,7 +491,7 @@ window.addEventListener("keydown", (e)=>{
   }
 });
 
-/* ===================== MODE 1 LOGIC ===================== */
+/* ===================== MODE 1 ===================== */
 const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
 const majorBtn = document.getElementById("majorBtn");
@@ -666,7 +663,6 @@ function answerDegree(d){
   setResult(userRoman, correctRoman, correct);
   setBigAnswer(correctRoman);
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
-
   enableDegreeButtons(false);
 
   stats.triadsByDegree[q.correctDegree].asked += 1;
@@ -682,6 +678,7 @@ replayBtn.addEventListener("click", replayOrStart);
 majorBtn.addEventListener("click", ()=>answerQuality("maj"));
 minorBtn.addEventListener("click", ()=>answerQuality("min"));
 
+/* ✅ FIX: keyboard answers no longer depend on button.disabled checks */
 window.addEventListener("keydown", (e)=>{
   if(e.metaKey||e.ctrlKey||e.altKey) return;
   const code = e.code;
@@ -701,8 +698,11 @@ window.addEventListener("keydown", (e)=>{
 
     if(d !== null){
       e.preventDefault();
-      const btn = degreeButtons.querySelector(`button[data-degree="${d}"]`);
-      if(btn && !btn.disabled) answerDegree(d);
+      if(q.correctDegree == null){
+        statusEl.textContent = "לחץ נגן רנדומלי קודם (כדי לקבל שאלה).";
+        return;
+      }
+      answerDegree(d);
       return;
     }
     return;
@@ -712,7 +712,7 @@ window.addEventListener("keydown", (e)=>{
   if(code === "KeyN" || code === "KeyD"){ e.preventDefault(); if(!minorBtn.disabled) answerQuality("min"); return; }
 });
 
-/* Mode 2 minimal */
+/* Minimal Mode 2 placeholder */
 const tabThirds = document.getElementById("tabThirds");
 const tabDegrees = document.getElementById("tabDegrees");
 const panelThirds = document.getElementById("panelThirds");
@@ -724,11 +724,7 @@ tabDegrees.addEventListener("click", ()=>{ panelDegrees.classList.add("active");
 const degPlayBtn = document.getElementById("degPlayBtn");
 const degReplayBtn = document.getElementById("degReplayBtn");
 const degAnswers = document.getElementById("degAnswers");
-for(let i=1;i<=7;i++){
-  const b=document.createElement("button");
-  b.textContent=String(i);
-  degAnswers.appendChild(b);
-}
+for(let i=1;i<=7;i++){ const b=document.createElement("button"); b.textContent=String(i); degAnswers.appendChild(b); }
 degPlayBtn.addEventListener("click", ()=>playRefC4());
 degReplayBtn.addEventListener("click", ()=>playRefC4());
 
