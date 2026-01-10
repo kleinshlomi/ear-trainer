@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>אימון אוזן</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎹</text></svg>">
+
+  <style>
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 980px; margin: auto; }
+    button { padding: 10px 14px; margin: 6px 6px 6px 0; font-size: 16px; }
+    .row { margin-top: 10px; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tab { padding: 10px 14px; border: 1px solid #aaa; border-radius: 10px; cursor: pointer; user-select: none; }
+    .tab.active { font-weight: 900; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    #status { margin-top: 12px; font-weight: 900; }
+    #bigAnswer { margin-top: 12px; font-size: 54px; font-weight: 900; text-align: center; min-height: 64px; }
+
+    .small { font-size: 13px; opacity: 0.85; line-height: 1.35; }
+    kbd { padding: 2px 6px; border: 1px solid #aaa; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; }
+    input[type="range"] { width: 260px; }
+    label { display: block; margin-top: 10px; }
+
+    .answersRow {
+      display: flex;
+      direction: ltr;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .answersRow button { min-width: 64px; }
+
+    .resultPanel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid #aaa;
+      border-radius: 12px;
+    }
+    .resultGrid {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .resultItem {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 260px;
+    }
+    .resultLabel { font-weight: 900; }
+    .resultValue { font-weight: 900; font-size: 18px; }
+    .mark {
+      font-weight: 900;
+      font-size: 20px;
+      width: 26px;
+      text-align: center;
+    }
+    .mark.ok { color: #0a7a0a; }
+    .mark.bad { color: #b30000; }
+    .mark.neutral { color: #666; }
+
+    .statsPanel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid #aaa;
+      border-radius: 12px;
+    }
+    .statsGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 22px;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .stat { min-width: 220px; }
+    .stat b { font-weight: 900; }
+    .btnDanger {
+      border: 1px solid #b30000;
+      color: #b30000;
+      background: transparent;
+      border-radius: 10px;
+    }
+
+    .miniTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 13px;
+    }
+    .miniTable th, .miniTable td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .miniTable th { font-weight: 900; background: #f6f6f6; }
+
+    .unlockBar {
+      padding: 12px 14px;
+      border: 1px solid #aaa;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .unlockLeft { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .badge {
+      font-weight: 900;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #aaa;
+    }
+    .badge.ok { color: #0a7a0a; border-color: #0a7a0a; }
+    .badge.bad { color: #b30000; border-color: #b30000; }
+  </style>
+</head>
+<body>
+
+  <h2>אימון אוזן</h2>
+
+  <div class="unlockBar">
+    <div class="unlockLeft">
+      <button id="unlockBtn">הפעל סאונד</button>
+      <span class="badge bad" id="audioBadge">סאונד לא הופעל</span>
+      <span class="small" id="audioHint">בטלפון מומלץ ללחוץ פעם אחת כדי לטעון דגימות מראש.</span>
+    </div>
+    <div class="small" id="audioProgress">דגימות: 0/9</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabThirds">מצב 1: טרצה מז'ור/מינור</div>
+    <div class="tab" id="tabDegrees">מצב 2: דרגות בסולם דו</div>
+  </div>
+
+  <div class="small">
+    קיצורים (לפי מקש פיזי, לא תלוי שפה):<br/>
+    <kbd>Space</kbd> = נגן רנדומלי · <kbd>R</kbd> = נגן שוב · מעבר מצבים: <kbd>F1</kbd> מצב 1, <kbd>F2</kbd> מצב 2.<br/>
+    מצב 1: מז'ור = <kbd>M</kbd> או <kbd>F</kbd> · מינור = <kbd>N</kbd> או <kbd>D</kbd>.<br/>
+    מצב 2: תשובה = <kbd>1</kbd>…<kbd>7</kbd> · רפרנס דו = <kbd>C</kbd>.
+  </div>
+
+  <hr />
+
+  <!-- MODE 1 -->
+  <section class="panel active" id="panelThirds">
+    <h3>מצב 1: טרצה גדולה/קטנה</h3>
+
+    <div class="row">
+      <button id="playBtn">נגן רנדומלי</button>
+      <button id="replayBtn">נגן שוב (R)</button>
+    </div>
+
+    <div class="row">
+      <button id="majorBtn" disabled>מז'ור</button>
+      <button id="minorBtn" disabled>מינור</button>
+    </div>
+
+    <label>
+      <input type="checkbox" id="asChord" />
+      לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו קצר.
+    </label>
+
+    <label>
+      <input type="checkbox" id="randomStyle" />
+      מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.
+    </label>
+
+    <!-- ✅ NEW FEATURE TOGGLE -->
+    <label>
+      <input type="checkbox" id="diatonicCThirdsOnly" />
+      להגביל לזוגות טרצה מתוך דו מז'ור בלבד (דו–מי, רה–פה, ... , סי–רה)
+    </label>
+
+    <label>
+      טווח בסיסים (כשההגבלה לא מסומנת): <span id="rangeLabel"></span>
+      <div class="small">מומלץ: להשאיר באמצע כדי שלא יהיה גבוה/נמוך מדי.</div>
+      <input id="lowNote" type="range" min="48" max="72" step="1" value="55" />
+      <input id="highNote" type="range" min="48" max="72" step="1" value="67" />
+    </label>
+
+    <label>
+      <input type="checkbox" id="avoidBlackRoot" />
+      להעדיף בסיסים על קלידים לבנים בלבד (כשההגבלה לא מסומנת)
+    </label>
+  </section>
+
+  <!-- MODE 2 -->
+  <section class="panel" id="panelDegrees">
+    <h3>מצב 2: דרגות בסולם דו מז'ור (1–7)</h3>
+
+    <div class="row">
+      <button id="degPlayBtn">נגן צליל רנדומלי</button>
+      <button id="degReplayBtn">נגן שוב (R)</button>
+      <button id="playTonicBtn">נגן דו (1) – רפרנס</button>
+    </div>
+
+    <div class="row answersRow" id="degAnswers"></div>
+  </section>
+
+  <div id="status">מוכן.</div>
+
+  <div class="resultPanel">
+    <div class="resultGrid">
+      <div class="resultItem">
+        <span class="resultLabel">מה ענית:</span>
+        <span class="resultValue" id="userAnswerText">—</span>
+        <span class="mark neutral" id="userAnswerMark">—</span>
+      </div>
+
+      <div class="resultItem">
+        <span class="resultLabel">התשובה הנכונה:</span>
+        <span class="resultValue" id="correctAnswerText">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="bigAnswer"></div>
+
+  <div class="statsPanel">
+    <div class="statsGrid">
+      <div class="stat">דיוק כללי: <b><span id="accAll">—</span></b></div>
+      <div class="stat">רצף נכון: <b><span id="streakNow">0</span></b> · שיא: <b><span id="streakBest">0</span></b></div>
+      <div class="stat">ממוצע זמן תגובה: <b><span id="avgTimeAll">—</span></b></div>
+
+      <div class="stat">טרצות (דיוק): <b><span id="accThirds">—</span></b></div>
+      <div class="stat">דרגות (דיוק): <b><span id="accDegrees">—</span></b></div>
+
+      <div class="stat">טעויות לפי תשובה נכונה (טרצות):<br/><b>מז'ור:</b> <span id="errMajor">0</span> · <b>מינור:</b> <span id="errMinor">0</span></div>
+
+      <div class="stat">
+        התפלגות תשובות (טרצות):
+        <table class="miniTable">
+          <thead><tr><th>ענית</th><th>כמות</th></tr></thead>
+          <tbody>
+            <tr><td>מז'ור</td><td id="thirdsAnsMajor">0</td></tr>
+            <tr><td>מינור</td><td id="thirdsAnsMinor">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="stat">
+        התפלגות (דרגות):
+        <table class="miniTable">
+          <thead><tr><th>דרגה</th><th>ענית</th><th>נכון היה</th></tr></thead>
+          <tbody id="degDistBody"></tbody>
+        </table>
+      </div>
+
+      <div class="stat">
+        <button class="btnDanger" id="resetStatsBtn">איפוס סטטיסטיקה</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===================== PIANO SAMPLER ===================== */
+let audioCtx = null;
+let sampleBuffers = new Map();
+let sampleLoadPromise = null;
+
+const unlockBtn = document.getElementById("unlockBtn");
+const audioBadge = document.getElementById("audioBadge");
+const audioProgress = document.getElementById("audioProgress");
+const audioHint = document.getElementById("audioHint");
+
+function getCtx() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  }
+  return audioCtx;
+}
+
+function assetUrl(relPath) {
+  return new URL(relPath, document.baseURI).toString();
+}
+
+const SAMPLE_MAP = [
+  { midi: 48, file: "assets/piano/C3.mp3"  },
+  { midi: 51, file: "assets/piano/Ds3.mp3" },
+  { midi: 54, file: "assets/piano/Fs3.mp3" },
+  { midi: 57, file: "assets/piano/A3.mp3"  },
+  { midi: 60, file: "assets/piano/C4.mp3"  },
+  { midi: 63, file: "assets/piano/Ds4.mp3" },
+  { midi: 66, file: "assets/piano/Fs4.mp3" },
+  { midi: 69, file: "assets/piano/A4.mp3"  },
+  { midi: 72, file: "assets/piano/C5.mp3"  },
+];
+
+function setAudioBadgeOk(msg) {
+  audioBadge.textContent = msg;
+  audioBadge.classList.remove("bad");
+  audioBadge.classList.add("ok");
+}
+function setAudioBadgeBad(msg) {
+  audioBadge.textContent = msg;
+  audioBadge.classList.remove("ok");
+  audioBadge.classList.add("bad");
+}
+
+async function ensureAudioReady() {
+  const ctx = getCtx();
+  if (ctx.state === "suspended") await ctx.resume();
+  if (!sampleLoadPromise) sampleLoadPromise = loadAllSamples();
+  await sampleLoadPromise;
+  return ctx;
+}
+
+async function fetchDecode(file) {
+  const ctx = getCtx();
+  const url = assetUrl(file);
+  const res = await fetch(url, { cache: "no-cache" });
+  if (!res.ok) throw new Error("Sample fetch failed: " + res.status + " for " + url);
+  const arr = await res.arrayBuffer();
+  return await ctx.decodeAudioData(arr);
+}
+
+async function loadAllSamples() {
+  try {
+    let loaded = 0;
+    audioProgress.textContent = "דגימות: 0/9";
+    for (const s of SAMPLE_MAP) {
+      const buf = await fetchDecode(s.file);
+      sampleBuffers.set(s.midi, buf);
+      loaded += 1;
+      audioProgress.textContent = "דגימות: " + loaded + "/9";
+    }
+    setAudioBadgeOk("סאונד הופעל");
+    audioHint.textContent = "הכול טעון. אפשר להתאמן.";
+  } catch (err) {
+    setAudioBadgeBad("שגיאה בטעינת סאונד");
+    audioHint.textContent = "דגימות לא נטענו. בדוק שקבצי mp3 קיימים ב-assets/piano.";
+    throw err;
+  }
+}
+
+function nearestSampleMidi(targetMidi) {
+  let best = SAMPLE_MAP[0].midi;
+  let bestDist = Math.abs(targetMidi - best);
+  for (const s of SAMPLE_MAP) {
+    const d = Math.abs(targetMidi - s.midi);
+    if (d < bestDist) { bestDist = d; best = s.midi; }
+  }
+  return best;
+}
+function rateForMidi(targetMidi, baseMidi) {
+  return Math.pow(2, (targetMidi - baseMidi) / 12);
+}
+function playBufferNote(ctx, buf, rate, startTime, durSec, gainVal) {
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.setValueAtTime(rate, startTime);
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, startTime);
+  g.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
+  g.gain.linearRampToValueAtTime(0.0001, startTime + durSec);
+
+  src.connect(g).connect(ctx.destination);
+  src.start(startTime);
+  src.stop(startTime + durSec + 0.05);
+}
+
+async function playSingleMidi(midi, durSec, gainVal) {
+  const ctx = await ensureAudioReady();
+  const base = nearestSampleMidi(midi);
+  const buf = sampleBuffers.get(base);
+  if (!buf) return;
+  const now = ctx.currentTime + 0.03;
+  playBufferNote(ctx, buf, rateForMidi(midi, base), now, durSec, gainVal);
+}
+
+async function playTwoSimulMidi(m1, m2) {
+  const ctx = await ensureAudioReady();
+  const now = ctx.currentTime + 0.03;
+  for (const midi of [m1, m2]) {
+    const base = nearestSampleMidi(midi);
+    const buf = sampleBuffers.get(base);
+    if (!buf) continue;
+    playBufferNote(ctx, buf, rateForMidi(midi, base), now, 0.95, 0.9);
+  }
+}
+
+async function playTwoArpMidi(m1, m2) {
+  const ctx = await ensureAudioReady();
+  const now = ctx.currentTime + 0.03;
+
+  {
+    const base = nearestSampleMidi(m1);
+    const buf = sampleBuffers.get(base);
+    if (buf) playBufferNote(ctx, buf, rateForMidi(m1, base), now, 0.55, 0.9);
+  }
+  {
+    const base = nearestSampleMidi(m2);
+    const buf = sampleBuffers.get(base);
+    if (buf) playBufferNote(ctx, buf, rateForMidi(m2, base), now + 0.20, 0.75, 0.9);
+  }
+}
+
+unlockBtn.addEventListener("click", async () => {
+  try {
+    setAudioBadgeBad("טוען סאונד…");
+    await ensureAudioReady();
+    setAudioBadgeOk("סאונד הופעל");
+  } catch (_) {}
+});
+
+/* ===================== UI / RESULTS ===================== */
+const statusEl = document.getElementById("status");
+const bigAnswerEl = document.getElementById("bigAnswer");
+
+const userAnswerTextEl = document.getElementById("userAnswerText");
+const userAnswerMarkEl = document.getElementById("userAnswerMark");
+const correctAnswerTextEl = document.getElementById("correctAnswerText");
+
+function setBigAnswer(text) { bigAnswerEl.textContent = text || ""; }
+
+function setResult(userText, correctText, isCorrect) {
+  userAnswerTextEl.textContent = userText;
+  correctAnswerTextEl.textContent = correctText;
+
+  userAnswerMarkEl.classList.remove("ok", "bad", "neutral");
+  if (isCorrect === true) {
+    userAnswerMarkEl.textContent = "✅";
+    userAnswerMarkEl.classList.add("ok");
+  } else if (isCorrect === false) {
+    userAnswerMarkEl.textContent = "❌";
+    userAnswerMarkEl.classList.add("bad");
+  } else {
+    userAnswerMarkEl.textContent = "—";
+    userAnswerMarkEl.classList.add("neutral");
+  }
+}
+
+function clearResult() {
+  setResult("—", "—", null);
+  setBigAnswer("");
+}
+
+/* ===================== STATS (unchanged) ===================== */
+const accAllEl = document.getElementById("accAll");
+const streakNowEl = document.getElementById("streakNow");
+const streakBestEl = document.getElementById("streakBest");
+const avgTimeAllEl = document.getElementById("avgTimeAll");
+const accThirdsEl = document.getElementById("accThirds");
+const accDegreesEl = document.getElementById("accDegrees");
+
+const errMajorEl = document.getElementById("errMajor");
+const errMinorEl = document.getElementById("errMinor");
+const thirdsAnsMajorEl = document.getElementById("thirdsAnsMajor");
+const thirdsAnsMinorEl = document.getElementById("thirdsAnsMinor");
+
+const degDistBody = document.getElementById("degDistBody");
+const resetStatsBtn = document.getElementById("resetStatsBtn");
+
+const stats = {
+  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  degrees: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  streakNow: 0,
+  streakBest: 0,
+
+  thirdsWrongWhenCorrectWasMajor: 0,
+  thirdsWrongWhenCorrectWasMinor: 0,
+  thirdsAnsweredMajor: 0,
+  thirdsAnsweredMinor: 0,
+
+  degreesAnswered: Array(8).fill(0),
+  degreesCorrectWas: Array(8).fill(0),
+};
+
+function pct(c, t) { if (t === 0) return "—"; return Math.round((c/t)*100) + "% (" + c + "/" + t + ")"; }
+function avgSec(sum, count) { if (count === 0) return "—"; return (sum/count).toFixed(2) + "s"; }
+
+function renderDegreeDist() {
+  let html = "";
+  for (let d = 1; d <= 7; d++) {
+    html += "<tr><td>" + d + "</td><td>" + stats.degreesAnswered[d] + "</td><td>" + stats.degreesCorrectWas[d] + "</td></tr>";
+  }
+  degDistBody.innerHTML = html;
+}
+
+function updateStatsUI() {
+  accAllEl.textContent = pct(stats.all.correct, stats.all.total);
+  streakNowEl.textContent = String(stats.streakNow);
+  streakBestEl.textContent = String(stats.streakBest);
+  avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
+
+  accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
+  accDegreesEl.textContent = pct(stats.degrees.correct, stats.degrees.total);
+
+  errMajorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMajor);
+  errMinorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMinor);
+
+  thirdsAnsMajorEl.textContent = String(stats.thirdsAnsweredMajor);
+  thirdsAnsMinorEl.textContent = String(stats.thirdsAnsweredMinor);
+
+  renderDegreeDist();
+}
+
+function recordAnswerBase(mode, isCorrect, responseTimeSec) {
+  stats.all.total += 1;
+  stats[mode].total += 1;
+  if (isCorrect) { stats.all.correct += 1; stats[mode].correct += 1; }
+
+  if (isCorrect) { stats.streakNow += 1; if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow; }
+  else { stats.streakNow = 0; }
+
+  if (typeof responseTimeSec === "number" && isFinite(responseTimeSec) && responseTimeSec >= 0) {
+    stats.all.timeSum += responseTimeSec; stats.all.timeCount += 1;
+    stats[mode].timeSum += responseTimeSec; stats[mode].timeCount += 1;
+  }
+}
+
+function recordThirds(userSaysMajor, correctIsMajor, isCorrect, rt) {
+  if (userSaysMajor) stats.thirdsAnsweredMajor += 1; else stats.thirdsAnsweredMinor += 1;
+  if (!isCorrect) { if (correctIsMajor) stats.thirdsWrongWhenCorrectWasMajor += 1; else stats.thirdsWrongWhenCorrectWasMinor += 1; }
+  recordAnswerBase("thirds", isCorrect, rt);
+  updateStatsUI();
+}
+
+function recordDegrees(userDegree, correctDegree, isCorrect, rt) {
+  stats.degreesAnswered[userDegree] += 1;
+  stats.degreesCorrectWas[correctDegree] += 1;
+  recordAnswerBase("degrees", isCorrect, rt);
+  updateStatsUI();
+}
+
+resetStatsBtn.addEventListener("click", () => {
+  stats.all = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.thirds = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.degrees = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.streakNow = 0; stats.streakBest = 0;
+
+  stats.thirdsWrongWhenCorrectWasMajor = 0;
+  stats.thirdsWrongWhenCorrectWasMinor = 0;
+  stats.thirdsAnsweredMajor = 0;
+  stats.thirdsAnsweredMinor = 0;
+
+  stats.degreesAnswered = Array(8).fill(0);
+  stats.degreesCorrectWas = Array(8).fill(0);
+
+  updateStatsUI();
+});
+
+/* ===================== TABS ===================== */
+const tabThirds = document.getElementById("tabThirds");
+const tabDegrees = document.getElementById("tabDegrees");
+const panelThirds = document.getElementById("panelThirds");
+const panelDegrees = document.getElementById("panelDegrees");
+
+let activeMode = "thirds";
+function setMode(mode) {
+  activeMode = mode;
+  tabThirds.classList.toggle("active", mode === "thirds");
+  tabDegrees.classList.toggle("active", mode === "degrees");
+  panelThirds.classList.toggle("active", mode === "thirds");
+  panelDegrees.classList.toggle("active", mode === "degrees");
+  statusEl.textContent = (mode === "thirds") ? "מצב 1 פעיל." : "מצב 2 פעיל.";
+}
+tabThirds.addEventListener("click", () => setMode("thirds"));
+tabDegrees.addEventListener("click", () => setMode("degrees"));
+
+/* ===================== MODE 1: THIRDS (+ NEW TOGGLE) ===================== */
+const playBtn = document.getElementById("playBtn");
+const replayBtn = document.getElementById("replayBtn");
+const majorBtn = document.getElementById("majorBtn");
+const minorBtn = document.getElementById("minorBtn");
+const asChordChk = document.getElementById("asChord");
+const randomStyleChk = document.getElementById("randomStyle");
+const diatonicCThirdsOnlyChk = document.getElementById("diatonicCThirdsOnly");
+
+const lowNote = document.getElementById("lowNote");
+const highNote = document.getElementById("highNote");
+const rangeLabel = document.getElementById("rangeLabel");
+const avoidBlackRoot = document.getElementById("avoidBlackRoot");
+
+let mode1 = {
+  m1: null,
+  m2: null,
+  correctIsMajor: null,
+  questionStart: null
+};
+
+function chooseAsChordNow() {
+  if (randomStyleChk.checked) return Math.random() < 0.5;
+  return asChordChk.checked;
+}
+
+function isWhiteKey(midi) {
+  const pc = ((midi % 12) + 12) % 12;
+  return ![1,3,6,8,10].includes(pc);
+}
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+function pickRandomRoot(low, high, whiteOnly) {
+  low = clamp(low, 24, 96);
+  high = clamp(high, 24, 96);
+  if (high < low) { const t = low; low = high; high = t; }
+  const maxRoot = high - 4;
+  const minRoot = low;
+  if (maxRoot < minRoot) return 60;
+  if (!whiteOnly) return randInt(minRoot, maxRoot);
+  for (let i = 0; i < 30; i++) {
+    const m = randInt(minRoot, maxRoot);
+    if (isWhiteKey(m)) return m;
+  }
+  return randInt(minRoot, maxRoot);
+}
+
+function midiName(m) {
+  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const pc = ((m % 12) + 12) % 12;
+  const oct = Math.floor(m / 12) - 1;
+  return names[pc] + oct;
+}
+function updateRangeLabel() {
+  const lo = Number(lowNote.value);
+  const hi = Number(highNote.value);
+  const a = Math.min(lo, hi);
+  const b = Math.max(lo, hi);
+  rangeLabel.textContent = midiName(a) + " עד " + midiName(b);
+}
+lowNote.addEventListener("input", updateRangeLabel);
+highNote.addEventListener("input", updateRangeLabel);
+updateRangeLabel();
+
+/* ✅ The 7 allowed diatonic C-major third pairs (around C4) */
+const NOTE = { C:60, D:62, E:64, F:65, G:67, A:69, B:71 };
+const C_DIATONIC_THIRD_PAIRS = [
+  { m1: NOTE.C,    m2: NOTE.E,     correctIsMajor: true  }, // C-E
+  { m1: NOTE.D,    m2: NOTE.F,     correctIsMajor: false }, // D-F
+  { m1: NOTE.E,    m2: NOTE.G,     correctIsMajor: false }, // E-G
+  { m1: NOTE.F,    m2: NOTE.A,     correctIsMajor: true  }, // F-A
+  { m1: NOTE.G,    m2: NOTE.B,     correctIsMajor: true  }, // G-B
+  { m1: NOTE.A,    m2: NOTE.C + 12,correctIsMajor: false }, // A-C5
+  { m1: NOTE.B,    m2: NOTE.D + 12,correctIsMajor: false }  // B-D5
+];
+
+async function thirds_playCurrent() {
+  if (mode1.m1 === null || mode1.m2 === null) return;
+  const asChordNow = chooseAsChordNow();
+  if (asChordNow) await playTwoSimulMidi(mode1.m1, mode1.m2);
+  else await playTwoArpMidi(mode1.m1, mode1.m2);
+  statusEl.textContent = diatonicCThirdsOnlyChk.checked
+    ? "שמע (מוגבל לדו מז'ור) → ענה מז'ור/מינור."
+    : "שמע → ענה מז'ור/מינור.";
+}
+
+async function thirds_newRound() {
+  // Choose the source of notes based on the new toggle
+  if (diatonicCThirdsOnlyChk.checked) {
+    const p = C_DIATONIC_THIRD_PAIRS[Math.floor(Math.random() * C_DIATONIC_THIRD_PAIRS.length)];
+    mode1.m1 = p.m1;
+    mode1.m2 = p.m2;
+    mode1.correctIsMajor = p.correctIsMajor;
+  } else {
+    const root = pickRandomRoot(Number(lowNote.value), Number(highNote.value), avoidBlackRoot.checked);
+    const isMajor = Math.random() < 0.5;
+    mode1.m1 = root;
+    mode1.m2 = root + (isMajor ? 4 : 3);
+    mode1.correctIsMajor = isMajor;
+  }
+
+  majorBtn.disabled = false;
+  minorBtn.disabled = false;
+
+  clearResult();
+  mode1.questionStart = performance.now();
+
+  await thirds_playCurrent();
+}
+
+async function thirds_replayOrStart() {
+  if (mode1.m1 === null || mode1.m2 === null) { await thirds_newRound(); return; }
+  await thirds_playCurrent();
+}
+
+function thirds_answer(userSaysMajor) {
+  if (mode1.correctIsMajor === null) return;
+
+  const correct = (userSaysMajor === mode1.correctIsMajor);
+  const userText = userSaysMajor ? "מז'ור" : "מינור";
+  const correctText = mode1.correctIsMajor ? "מז'ור" : "מינור";
+
+  statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
+  setBigAnswer(correctText);
+  setResult(userText, correctText, correct);
+
+  majorBtn.disabled = true;
+  minorBtn.disabled = true;
+
+  const rt = (typeof mode1.questionStart === "number") ? (performance.now() - mode1.questionStart) / 1000 : null;
+  recordThirds(userSaysMajor, mode1.correctIsMajor, correct, rt);
+}
+
+playBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_newRound(); });
+replayBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_replayOrStart(); });
+majorBtn.addEventListener("click", () => thirds_answer(true));
+minorBtn.addEventListener("click", () => thirds_answer(false));
+
+/* ===================== MODE 2: DEGREES (unchanged) ===================== */
+const degPlayBtn = document.getElementById("degPlayBtn");
+const degReplayBtn = document.getElementById("degReplayBtn");
+const playTonicBtn = document.getElementById("playTonicBtn");
+const degAnswers = document.getElementById("degAnswers");
+
+const DEGREE_PCS = [0, 2, 4, 5, 7, 9, 11];
+const TONIC_MIDI = 60;
+let deg_degree = null, deg_midi = null, deg_questionStart = null;
+
+function degrees_buildButtons() {
+  for (let i = 1; i <= 7; i++) {
+    const b = document.createElement("button");
+    b.textContent = String(i);
+    b.dataset.degree = String(i);
+    b.addEventListener("click", () => degrees_answer(i));
+    degAnswers.appendChild(b);
+  }
+}
+degrees_buildButtons();
+
+function degrees_setAnswerButtonsEnabled(enabled) {
+  degAnswers.querySelectorAll("button").forEach(b => b.disabled = !enabled);
+}
+
+async function degrees_playTonic() {
+  await playSingleMidi(TONIC_MIDI, 0.9, 0.9);
+  statusEl.textContent = "נוגן דו (1) לרפרנס.";
+}
+
+async function degrees_playCurrent() {
+  if (deg_midi === null) return;
+  await playSingleMidi(deg_midi, 1.0, 0.9);
+  statusEl.textContent = "שמע → איזה דרגה זה? (1–7)";
+}
+
+async function degrees_newRound() {
+  deg_degree = 1 + Math.floor(Math.random() * 7);
+  const octaveShift = (Math.random() < 0.5) ? -12 : +12;
+  const pcOffset = DEGREE_PCS[deg_degree - 1];
+  deg_midi = TONIC_MIDI + pcOffset + octaveShift;
+
+  degrees_setAnswerButtonsEnabled(true);
+  clearResult();
+  deg_questionStart = performance.now();
+
+  await degrees_playCurrent();
+}
+
+async function degrees_replayOrStart() {
+  if (deg_midi === null) { await degrees_newRound(); return; }
+  await degrees_playCurrent();
+}
+
+function degrees_answer(userDegree) {
+  if (deg_degree === null) return;
+  const correct = (userDegree === deg_degree);
+
+  const userText = String(userDegree);
+  const correctText = String(deg_degree);
+
+  statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
+  setBigAnswer(correctText);
+  setResult(userText, correctText, correct);
+
+  degrees_setAnswerButtonsEnabled(false);
+
+  const rt = (typeof deg_questionStart === "number") ? (performance.now() - deg_questionStart) / 1000 : null;
+  recordDegrees(userDegree, deg_degree, correct, rt);
+}
+
+degPlayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_newRound(); });
+degReplayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_replayOrStart(); });
+playTonicBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_playTonic(); });
+
+/* ===================== KEYBOARD (layout independent) ===================== */
+window.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const code = e.code;
+
+  if (code === "F1") { setMode("thirds"); return; }
+  if (code === "F2") { setMode("degrees"); return; }
+
+  if (code === "Space") {
+    e.preventDefault();
+    if (activeMode === "thirds") thirds_newRound();
+    else degrees_newRound();
+    return;
+  }
+
+  if (code === "KeyR") {
+    e.preventDefault();
+    if (activeMode === "thirds") thirds_replayOrStart();
+    else degrees_replayOrStart();
+    return;
+  }
+
+  if (activeMode === "thirds") {
+    if (code === "KeyM" || code === "KeyF") {
+      e.preventDefault();
+      if (!majorBtn.disabled) thirds_answer(true);
+      return;
+    }
+    if (code === "KeyN" || code === "KeyD") {
+      e.preventDefault();
+      if (!minorBtn.disabled) thirds_answer(false);
+      return;
+    }
+    return;
+  }
+
+  if (activeMode === "degrees") {
+    if (code === "KeyC") {
+      e.preventDefault();
+      degrees_playTonic();
+      return;
+    }
+    if (code.startsWith("Digit")) {
+      const d = Number(code.slice(5));
+      if (d >= 1 && d <= 7) {
+        const btn = degAnswers.querySelector(`button[data-degree="${d}"]`);
+        if (btn && !btn.disabled) degrees_answer(d);
+      }
+      return;
+    }
+  }
+});
+
+// init
+clearResult();
+updateStatsUI();
+
+/* ===================== STATS HELPERS (need these defined after functions above) ===================== */
+function recordThirds(userSaysMajor, correctIsMajor, isCorrect, rt) {
+  if (userSaysMajor) stats.thirdsAnsweredMajor += 1; else stats.thirdsAnsweredMinor += 1;
+  if (!isCorrect) { if (correctIsMajor) stats.thirdsWrongWhenCorrectWasMajor += 1; else stats.thirdsWrongWhenCorrectWasMinor += 1; }
+  recordAnswerBase("thirds", isCorrect, rt);
+  updateStatsUI();
+}
+function recordDegrees(userDegree, correctDegree, isCorrect, rt) {
+  stats.degreesAnswered[userDegree] += 1;
+  stats.degreesCorrectWas[correctDegree] += 1;
+  recordAnswerBase("degrees", isCorrect, rt);
+  updateStatsUI();
+}
+</script>
+
+<script>
+/* ===================== STATS BASE (kept in separate block to avoid reordering issues) ===================== */
+function recordAnswerBase(mode, isCorrect, responseTimeSec) {
+  stats.all.total += 1;
+  stats[mode].total += 1;
+  if (isCorrect) { stats.all.correct += 1; stats[mode].correct += 1; }
+
+  if (isCorrect) { stats.streakNow += 1; if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow; }
+  else { stats.streakNow = 0; }
+
+  if (typeof responseTimeSec === "number" && isFinite(responseTimeSec) && responseTimeSec >= 0) {
+    stats.all.timeSum += responseTimeSec; stats.all.timeCount += 1;
+    stats[mode].timeSum += responseTimeSec; stats[mode].timeCount += 1;
+  }
+}
+</script>
+
+<script>
+/* ===================== STATS STATE + UI (kept in separate block) ===================== */
+const stats = {
+  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  degrees: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  streakNow: 0,
+  streakBest: 0,
+
+  thirdsWrongWhenCorrectWasMajor: 0,
+  thirdsWrongWhenCorrectWasMinor: 0,
+  thirdsAnsweredMajor: 0,
+  thirdsAnsweredMinor: 0,
+
+  degreesAnswered: Array(8).fill(0),
+  degreesCorrectWas: Array(8).fill(0),
+};
+
+function pct(c, t) { if (t === 0) return "—"; return Math.round((c/t)*100) + "% (" + c + "/" + t + ")"; }
+function avgSec(sum, count) { if (count === 0) return "—"; return (sum/count).toFixed(2) + "s"; }
+
+function renderDegreeDist() {
+  let html = "";
+  for (let d = 1; d <= 7; d++) {
+    html += "<tr><td>" + d + "</td><td>" + stats.degreesAnswered[d] + "</td><td>" + stats.degreesCorrectWas[d] + "</td></tr>";
+  }
+  degDistBody.innerHTML = html;
+}
+
+function updateStatsUI() {
+  accAllEl.textContent = pct(stats.all.correct, stats.all.total);
+  streakNowEl.textContent = String(stats.streakNow);
+  streakBestEl.textContent = String(stats.streakBest);
+  avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
+
+  accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
+  accDegreesEl.textContent = pct(stats.degrees.correct, stats.degrees.total);
+
+  errMajorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMajor);
+  errMinorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMinor);
+
+  thirdsAnsMajorEl.textContent = String(stats.thirdsAnsweredMajor);
+  thirdsAnsMinorEl.textContent = String(stats.thirdsAnsweredMinor);
+
+  renderDegreeDist();
+}
+
+resetStatsBtn.addEventListener("click", () => {
+  stats.all = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.thirds = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.degrees = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
+  stats.streakNow = 0; stats.streakBest = 0;
+
+  stats.thirdsWrongWhenCorrectWasMajor = 0;
+  stats.thirdsWrongWhenCorrectWasMinor = 0;
+  stats.thirdsAnsweredMajor = 0;
+  stats.thirdsAnsweredMinor = 0;
+
+  stats.degreesAnswered = Array(8).fill(0);
+  stats.degreesCorrectWas = Array(8).fill(0);
+
+  updateStatsUI();
+});
+</script>
+
+<script>
+/* ===================== MODE 2 STATS TABLE ELEMENTS (bind once) ===================== */
+renderDegreeDist();
+updateStatsUI();
+</script>
+
+</body>
+</html>
