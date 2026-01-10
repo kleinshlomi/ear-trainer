@@ -175,7 +175,6 @@
       מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.
     </label>
 
-    <!-- ✅ NEW FEATURE TOGGLE -->
     <label>
       <input type="checkbox" id="diatonicCThirdsOnly" />
       להגביל לזוגות טרצה מתוך דו מז'ור בלבד (דו–מי, רה–פה, ... , סי–רה)
@@ -263,7 +262,7 @@
   </div>
 
 <script>
-/* ===================== PIANO SAMPLER ===================== */
+/* ===================== PIANO SAMPLER (best-effort load) ===================== */
 let audioCtx = null;
 let sampleBuffers = new Map();
 let sampleLoadPromise = null;
@@ -280,7 +279,6 @@ function getCtx() {
   }
   return audioCtx;
 }
-
 function assetUrl(relPath) {
   return new URL(relPath, document.baseURI).toString();
 }
@@ -311,7 +309,7 @@ function setAudioBadgeBad(msg) {
 async function ensureAudioReady() {
   const ctx = getCtx();
   if (ctx.state === "suspended") await ctx.resume();
-  if (!sampleLoadPromise) sampleLoadPromise = loadAllSamples();
+  if (!sampleLoadPromise) sampleLoadPromise = loadAllSamplesBestEffort();
   await sampleLoadPromise;
   return ctx;
 }
@@ -325,37 +323,58 @@ async function fetchDecode(file) {
   return await ctx.decodeAudioData(arr);
 }
 
-async function loadAllSamples() {
-  try {
-    let loaded = 0;
-    audioProgress.textContent = "דגימות: 0/9";
-    for (const s of SAMPLE_MAP) {
+async function loadAllSamplesBestEffort() {
+  const missing = [];
+  let loaded = 0;
+
+  audioProgress.textContent = "דגימות: 0/" + SAMPLE_MAP.length;
+
+  for (const s of SAMPLE_MAP) {
+    try {
       const buf = await fetchDecode(s.file);
       sampleBuffers.set(s.midi, buf);
       loaded += 1;
-      audioProgress.textContent = "דגימות: " + loaded + "/9";
+      audioProgress.textContent = "דגימות: " + loaded + "/" + SAMPLE_MAP.length;
+    } catch (err) {
+      missing.push(s.file);
+      console.warn(err);
     }
-    setAudioBadgeOk("סאונד הופעל");
-    audioHint.textContent = "הכול טעון. אפשר להתאמן.";
-  } catch (err) {
+  }
+
+  if (loaded === 0) {
     setAudioBadgeBad("שגיאה בטעינת סאונד");
-    audioHint.textContent = "דגימות לא נטענו. בדוק שקבצי mp3 קיימים ב-assets/piano.";
-    throw err;
+    audioHint.textContent = "0 דגימות נטענו. בדוק שהקבצים קיימים ב-assets/piano ושמותיהם זהים.";
+    throw new Error("No piano samples loaded. Missing: " + missing.join(", "));
+  }
+
+  setAudioBadgeOk("סאונד הופעל");
+  if (missing.length === 0) {
+    audioHint.textContent = "הכול טעון. אפשר להתאמן.";
+  } else {
+    audioHint.textContent = "נטענו " + loaded + " דגימות. חסרים: " + missing.length + " (אפשר להתאמן בכל זאת).";
+    console.log("Missing samples:", missing);
   }
 }
 
+function availableSampleMidis() {
+  return Array.from(sampleBuffers.keys()).sort((a,b)=>a-b);
+}
+
 function nearestSampleMidi(targetMidi) {
-  let best = SAMPLE_MAP[0].midi;
+  const mids = availableSampleMidis();
+  let best = mids[0];
   let bestDist = Math.abs(targetMidi - best);
-  for (const s of SAMPLE_MAP) {
-    const d = Math.abs(targetMidi - s.midi);
-    if (d < bestDist) { bestDist = d; best = s.midi; }
+  for (const m of mids) {
+    const d = Math.abs(targetMidi - m);
+    if (d < bestDist) { bestDist = d; best = m; }
   }
   return best;
 }
+
 function rateForMidi(targetMidi, baseMidi) {
   return Math.pow(2, (targetMidi - baseMidi) / 12);
 }
+
 function playBufferNote(ctx, buf, rate, startTime, durSec, gainVal) {
   const src = ctx.createBufferSource();
   src.buffer = buf;
@@ -415,7 +434,7 @@ unlockBtn.addEventListener("click", async () => {
   } catch (_) {}
 });
 
-/* ===================== UI / RESULTS ===================== */
+/* ===================== REST OF APP (same as before, with diatonic toggle) ===================== */
 const statusEl = document.getElementById("status");
 const bigAnswerEl = document.getElementById("bigAnswer");
 
@@ -430,24 +449,14 @@ function setResult(userText, correctText, isCorrect) {
   correctAnswerTextEl.textContent = correctText;
 
   userAnswerMarkEl.classList.remove("ok", "bad", "neutral");
-  if (isCorrect === true) {
-    userAnswerMarkEl.textContent = "✅";
-    userAnswerMarkEl.classList.add("ok");
-  } else if (isCorrect === false) {
-    userAnswerMarkEl.textContent = "❌";
-    userAnswerMarkEl.classList.add("bad");
-  } else {
-    userAnswerMarkEl.textContent = "—";
-    userAnswerMarkEl.classList.add("neutral");
-  }
+  if (isCorrect === true) { userAnswerMarkEl.textContent = "✅"; userAnswerMarkEl.classList.add("ok"); }
+  else if (isCorrect === false) { userAnswerMarkEl.textContent = "❌"; userAnswerMarkEl.classList.add("bad"); }
+  else { userAnswerMarkEl.textContent = "—"; userAnswerMarkEl.classList.add("neutral"); }
 }
 
-function clearResult() {
-  setResult("—", "—", null);
-  setBigAnswer("");
-}
+function clearResult() { setResult("—", "—", null); setBigAnswer(""); }
 
-/* ===================== STATS (unchanged) ===================== */
+/* Stats UI elements */
 const accAllEl = document.getElementById("accAll");
 const streakNowEl = document.getElementById("streakNow");
 const streakBestEl = document.getElementById("streakBest");
@@ -463,34 +472,33 @@ const thirdsAnsMinorEl = document.getElementById("thirdsAnsMinor");
 const degDistBody = document.getElementById("degDistBody");
 const resetStatsBtn = document.getElementById("resetStatsBtn");
 
+/* Stats state */
 const stats = {
   all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
   thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
   degrees: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
   streakNow: 0,
   streakBest: 0,
-
   thirdsWrongWhenCorrectWasMajor: 0,
   thirdsWrongWhenCorrectWasMinor: 0,
   thirdsAnsweredMajor: 0,
   thirdsAnsweredMinor: 0,
-
   degreesAnswered: Array(8).fill(0),
   degreesCorrectWas: Array(8).fill(0),
 };
 
-function pct(c, t) { if (t === 0) return "—"; return Math.round((c/t)*100) + "% (" + c + "/" + t + ")"; }
-function avgSec(sum, count) { if (count === 0) return "—"; return (sum/count).toFixed(2) + "s"; }
+function pct(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "% ("+c+"/"+t+")"); }
+function avgSec(sum,cnt){ return cnt===0 ? "—" : (sum/cnt).toFixed(2)+"s"; }
 
-function renderDegreeDist() {
-  let html = "";
-  for (let d = 1; d <= 7; d++) {
-    html += "<tr><td>" + d + "</td><td>" + stats.degreesAnswered[d] + "</td><td>" + stats.degreesCorrectWas[d] + "</td></tr>";
+function renderDegreeDist(){
+  let html="";
+  for(let d=1; d<=7; d++){
+    html += "<tr><td>"+d+"</td><td>"+stats.degreesAnswered[d]+"</td><td>"+stats.degreesCorrectWas[d]+"</td></tr>";
   }
   degDistBody.innerHTML = html;
 }
 
-function updateStatsUI() {
+function updateStatsUI(){
   accAllEl.textContent = pct(stats.all.correct, stats.all.total);
   streakNowEl.textContent = String(stats.streakNow);
   streakBestEl.textContent = String(stats.streakBest);
@@ -508,70 +516,74 @@ function updateStatsUI() {
   renderDegreeDist();
 }
 
-function recordAnswerBase(mode, isCorrect, responseTimeSec) {
+function recordAnswerBase(mode, isCorrect, rt){
   stats.all.total += 1;
   stats[mode].total += 1;
-  if (isCorrect) { stats.all.correct += 1; stats[mode].correct += 1; }
+  if(isCorrect){ stats.all.correct += 1; stats[mode].correct += 1; }
 
-  if (isCorrect) { stats.streakNow += 1; if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow; }
-  else { stats.streakNow = 0; }
+  if(isCorrect){
+    stats.streakNow += 1;
+    if(stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow;
+  } else {
+    stats.streakNow = 0;
+  }
 
-  if (typeof responseTimeSec === "number" && isFinite(responseTimeSec) && responseTimeSec >= 0) {
-    stats.all.timeSum += responseTimeSec; stats.all.timeCount += 1;
-    stats[mode].timeSum += responseTimeSec; stats[mode].timeCount += 1;
+  if(typeof rt === "number" && isFinite(rt) && rt >= 0){
+    stats.all.timeSum += rt; stats.all.timeCount += 1;
+    stats[mode].timeSum += rt; stats[mode].timeCount += 1;
   }
 }
 
-function recordThirds(userSaysMajor, correctIsMajor, isCorrect, rt) {
-  if (userSaysMajor) stats.thirdsAnsweredMajor += 1; else stats.thirdsAnsweredMinor += 1;
-  if (!isCorrect) { if (correctIsMajor) stats.thirdsWrongWhenCorrectWasMajor += 1; else stats.thirdsWrongWhenCorrectWasMinor += 1; }
+function recordThirds(userSaysMajor, correctIsMajor, isCorrect, rt){
+  if(userSaysMajor) stats.thirdsAnsweredMajor += 1; else stats.thirdsAnsweredMinor += 1;
+  if(!isCorrect){
+    if(correctIsMajor) stats.thirdsWrongWhenCorrectWasMajor += 1;
+    else stats.thirdsWrongWhenCorrectWasMinor += 1;
+  }
   recordAnswerBase("thirds", isCorrect, rt);
   updateStatsUI();
 }
 
-function recordDegrees(userDegree, correctDegree, isCorrect, rt) {
+function recordDegrees(userDegree, correctDegree, isCorrect, rt){
   stats.degreesAnswered[userDegree] += 1;
   stats.degreesCorrectWas[correctDegree] += 1;
   recordAnswerBase("degrees", isCorrect, rt);
   updateStatsUI();
 }
 
-resetStatsBtn.addEventListener("click", () => {
-  stats.all = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
-  stats.thirds = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
-  stats.degrees = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
-  stats.streakNow = 0; stats.streakBest = 0;
-
-  stats.thirdsWrongWhenCorrectWasMajor = 0;
-  stats.thirdsWrongWhenCorrectWasMinor = 0;
-  stats.thirdsAnsweredMajor = 0;
-  stats.thirdsAnsweredMinor = 0;
-
+resetStatsBtn.addEventListener("click", ()=>{
+  stats.all = { correct:0,total:0,timeSum:0,timeCount:0 };
+  stats.thirds = { correct:0,total:0,timeSum:0,timeCount:0 };
+  stats.degrees = { correct:0,total:0,timeSum:0,timeCount:0 };
+  stats.streakNow=0; stats.streakBest=0;
+  stats.thirdsWrongWhenCorrectWasMajor=0;
+  stats.thirdsWrongWhenCorrectWasMinor=0;
+  stats.thirdsAnsweredMajor=0;
+  stats.thirdsAnsweredMinor=0;
   stats.degreesAnswered = Array(8).fill(0);
   stats.degreesCorrectWas = Array(8).fill(0);
-
   updateStatsUI();
 });
 
-/* ===================== TABS ===================== */
+/* Tabs */
 const tabThirds = document.getElementById("tabThirds");
 const tabDegrees = document.getElementById("tabDegrees");
 const panelThirds = document.getElementById("panelThirds");
 const panelDegrees = document.getElementById("panelDegrees");
-
 let activeMode = "thirds";
-function setMode(mode) {
-  activeMode = mode;
-  tabThirds.classList.toggle("active", mode === "thirds");
-  tabDegrees.classList.toggle("active", mode === "degrees");
-  panelThirds.classList.toggle("active", mode === "thirds");
-  panelDegrees.classList.toggle("active", mode === "degrees");
-  statusEl.textContent = (mode === "thirds") ? "מצב 1 פעיל." : "מצב 2 פעיל.";
-}
-tabThirds.addEventListener("click", () => setMode("thirds"));
-tabDegrees.addEventListener("click", () => setMode("degrees"));
 
-/* ===================== MODE 1: THIRDS (+ NEW TOGGLE) ===================== */
+function setMode(mode){
+  activeMode = mode;
+  tabThirds.classList.toggle("active", mode==="thirds");
+  tabDegrees.classList.toggle("active", mode==="degrees");
+  panelThirds.classList.toggle("active", mode==="thirds");
+  panelDegrees.classList.toggle("active", mode==="degrees");
+  statusEl.textContent = (mode==="thirds") ? "מצב 1 פעיל." : "מצב 2 פעיל.";
+}
+tabThirds.addEventListener("click", ()=>setMode("thirds"));
+tabDegrees.addEventListener("click", ()=>setMode("degrees"));
+
+/* Mode 1 */
 const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
 const majorBtn = document.getElementById("majorBtn");
@@ -579,259 +591,207 @@ const minorBtn = document.getElementById("minorBtn");
 const asChordChk = document.getElementById("asChord");
 const randomStyleChk = document.getElementById("randomStyle");
 const diatonicCThirdsOnlyChk = document.getElementById("diatonicCThirdsOnly");
-
 const lowNote = document.getElementById("lowNote");
 const highNote = document.getElementById("highNote");
 const rangeLabel = document.getElementById("rangeLabel");
 const avoidBlackRoot = document.getElementById("avoidBlackRoot");
 
-let mode1 = {
-  m1: null,
-  m2: null,
-  correctIsMajor: null,
-  questionStart: null
-};
+let mode1 = { m1:null, m2:null, correctIsMajor:null, questionStart:null };
 
-function chooseAsChordNow() {
-  if (randomStyleChk.checked) return Math.random() < 0.5;
+function chooseAsChordNow(){
+  if(randomStyleChk.checked) return Math.random() < 0.5;
   return asChordChk.checked;
 }
 
-function isWhiteKey(midi) {
-  const pc = ((midi % 12) + 12) % 12;
+function isWhiteKey(midi){
+  const pc=((midi%12)+12)%12;
   return ![1,3,6,8,10].includes(pc);
 }
-function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
-function randInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
-
-function pickRandomRoot(low, high, whiteOnly) {
-  low = clamp(low, 24, 96);
-  high = clamp(high, 24, 96);
-  if (high < low) { const t = low; low = high; high = t; }
-  const maxRoot = high - 4;
-  const minRoot = low;
-  if (maxRoot < minRoot) return 60;
-  if (!whiteOnly) return randInt(minRoot, maxRoot);
-  for (let i = 0; i < 30; i++) {
-    const m = randInt(minRoot, maxRoot);
-    if (isWhiteKey(m)) return m;
-  }
-  return randInt(minRoot, maxRoot);
+function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
+function randInt(lo,hi){ return lo + Math.floor(Math.random()*(hi-lo+1)); }
+function pickRandomRoot(low,high,whiteOnly){
+  low=clamp(low,24,96); high=clamp(high,24,96);
+  if(high<low){ const t=low; low=high; high=t; }
+  const maxRoot=high-4, minRoot=low;
+  if(maxRoot<minRoot) return 60;
+  if(!whiteOnly) return randInt(minRoot,maxRoot);
+  for(let i=0;i<30;i++){ const m=randInt(minRoot,maxRoot); if(isWhiteKey(m)) return m; }
+  return randInt(minRoot,maxRoot);
 }
-
-function midiName(m) {
-  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const pc = ((m % 12) + 12) % 12;
-  const oct = Math.floor(m / 12) - 1;
-  return names[pc] + oct;
+function midiName(m){
+  const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const pc=((m%12)+12)%12;
+  return names[pc]+(Math.floor(m/12)-1);
 }
-function updateRangeLabel() {
-  const lo = Number(lowNote.value);
-  const hi = Number(highNote.value);
-  const a = Math.min(lo, hi);
-  const b = Math.max(lo, hi);
+function updateRangeLabel(){
+  const lo=Number(lowNote.value), hi=Number(highNote.value);
+  const a=Math.min(lo,hi), b=Math.max(lo,hi);
   rangeLabel.textContent = midiName(a) + " עד " + midiName(b);
 }
 lowNote.addEventListener("input", updateRangeLabel);
 highNote.addEventListener("input", updateRangeLabel);
 updateRangeLabel();
 
-/* ✅ The 7 allowed diatonic C-major third pairs (around C4) */
+// fixed 7 diatonic pairs
 const NOTE = { C:60, D:62, E:64, F:65, G:67, A:69, B:71 };
 const C_DIATONIC_THIRD_PAIRS = [
-  { m1: NOTE.C,    m2: NOTE.E,     correctIsMajor: true  }, // C-E
-  { m1: NOTE.D,    m2: NOTE.F,     correctIsMajor: false }, // D-F
-  { m1: NOTE.E,    m2: NOTE.G,     correctIsMajor: false }, // E-G
-  { m1: NOTE.F,    m2: NOTE.A,     correctIsMajor: true  }, // F-A
-  { m1: NOTE.G,    m2: NOTE.B,     correctIsMajor: true  }, // G-B
-  { m1: NOTE.A,    m2: NOTE.C + 12,correctIsMajor: false }, // A-C5
-  { m1: NOTE.B,    m2: NOTE.D + 12,correctIsMajor: false }  // B-D5
+  { m1: NOTE.C,    m2: NOTE.E,      correctIsMajor: true  },
+  { m1: NOTE.D,    m2: NOTE.F,      correctIsMajor: false },
+  { m1: NOTE.E,    m2: NOTE.G,      correctIsMajor: false },
+  { m1: NOTE.F,    m2: NOTE.A,      correctIsMajor: true  },
+  { m1: NOTE.G,    m2: NOTE.B,      correctIsMajor: true  },
+  { m1: NOTE.A,    m2: NOTE.C+12,   correctIsMajor: false },
+  { m1: NOTE.B,    m2: NOTE.D+12,   correctIsMajor: false },
 ];
 
-async function thirds_playCurrent() {
-  if (mode1.m1 === null || mode1.m2 === null) return;
-  const asChordNow = chooseAsChordNow();
-  if (asChordNow) await playTwoSimulMidi(mode1.m1, mode1.m2);
+async function thirds_playCurrent(){
+  if(mode1.m1==null || mode1.m2==null) return;
+  const chord = chooseAsChordNow();
+  if(chord) await playTwoSimulMidi(mode1.m1, mode1.m2);
   else await playTwoArpMidi(mode1.m1, mode1.m2);
-  statusEl.textContent = diatonicCThirdsOnlyChk.checked
-    ? "שמע (מוגבל לדו מז'ור) → ענה מז'ור/מינור."
-    : "שמע → ענה מז'ור/מינור.";
+  statusEl.textContent = diatonicCThirdsOnlyChk.checked ? "שמע (דו מז'ור בלבד) → ענה מז'ור/מינור." : "שמע → ענה מז'ור/מינור.";
 }
 
-async function thirds_newRound() {
-  // Choose the source of notes based on the new toggle
-  if (diatonicCThirdsOnlyChk.checked) {
-    const p = C_DIATONIC_THIRD_PAIRS[Math.floor(Math.random() * C_DIATONIC_THIRD_PAIRS.length)];
-    mode1.m1 = p.m1;
-    mode1.m2 = p.m2;
-    mode1.correctIsMajor = p.correctIsMajor;
+async function thirds_newRound(){
+  if(diatonicCThirdsOnlyChk.checked){
+    const p = C_DIATONIC_THIRD_PAIRS[Math.floor(Math.random()*C_DIATONIC_THIRD_PAIRS.length)];
+    mode1.m1 = p.m1; mode1.m2 = p.m2; mode1.correctIsMajor = p.correctIsMajor;
   } else {
     const root = pickRandomRoot(Number(lowNote.value), Number(highNote.value), avoidBlackRoot.checked);
     const isMajor = Math.random() < 0.5;
-    mode1.m1 = root;
-    mode1.m2 = root + (isMajor ? 4 : 3);
-    mode1.correctIsMajor = isMajor;
+    mode1.m1 = root; mode1.m2 = root + (isMajor ? 4 : 3); mode1.correctIsMajor = isMajor;
   }
 
-  majorBtn.disabled = false;
-  minorBtn.disabled = false;
-
+  majorBtn.disabled=false; minorBtn.disabled=false;
   clearResult();
   mode1.questionStart = performance.now();
-
   await thirds_playCurrent();
 }
 
-async function thirds_replayOrStart() {
-  if (mode1.m1 === null || mode1.m2 === null) { await thirds_newRound(); return; }
+async function thirds_replayOrStart(){
+  if(mode1.m1==null || mode1.m2==null){ await thirds_newRound(); return; }
   await thirds_playCurrent();
 }
 
-function thirds_answer(userSaysMajor) {
-  if (mode1.correctIsMajor === null) return;
-
+function thirds_answer(userSaysMajor){
+  if(mode1.correctIsMajor==null) return;
   const correct = (userSaysMajor === mode1.correctIsMajor);
   const userText = userSaysMajor ? "מז'ור" : "מינור";
   const correctText = mode1.correctIsMajor ? "מז'ור" : "מינור";
-
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
   setBigAnswer(correctText);
   setResult(userText, correctText, correct);
-
-  majorBtn.disabled = true;
-  minorBtn.disabled = true;
-
-  const rt = (typeof mode1.questionStart === "number") ? (performance.now() - mode1.questionStart) / 1000 : null;
+  majorBtn.disabled=true; minorBtn.disabled=true;
+  const rt = (typeof mode1.questionStart === "number") ? (performance.now() - mode1.questionStart)/1000 : null;
   recordThirds(userSaysMajor, mode1.correctIsMajor, correct, rt);
 }
 
-playBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_newRound(); });
-replayBtn.addEventListener("click", () => { if (activeMode === "thirds") thirds_replayOrStart(); });
-majorBtn.addEventListener("click", () => thirds_answer(true));
-minorBtn.addEventListener("click", () => thirds_answer(false));
+playBtn.addEventListener("click", ()=>{ if(activeMode==="thirds") thirds_newRound(); });
+replayBtn.addEventListener("click", ()=>{ if(activeMode==="thirds") thirds_replayOrStart(); });
+majorBtn.addEventListener("click", ()=>thirds_answer(true));
+minorBtn.addEventListener("click", ()=>thirds_answer(false));
 
-/* ===================== MODE 2: DEGREES (unchanged) ===================== */
+/* Mode 2 (degrees) */
 const degPlayBtn = document.getElementById("degPlayBtn");
 const degReplayBtn = document.getElementById("degReplayBtn");
 const playTonicBtn = document.getElementById("playTonicBtn");
 const degAnswers = document.getElementById("degAnswers");
 
-const DEGREE_PCS = [0, 2, 4, 5, 7, 9, 11];
-const TONIC_MIDI = 60;
-let deg_degree = null, deg_midi = null, deg_questionStart = null;
+const DEGREE_PCS=[0,2,4,5,7,9,11];
+const TONIC_MIDI=60;
+let deg_degree=null, deg_midi=null, deg_questionStart=null;
 
-function degrees_buildButtons() {
-  for (let i = 1; i <= 7; i++) {
-    const b = document.createElement("button");
-    b.textContent = String(i);
-    b.dataset.degree = String(i);
-    b.addEventListener("click", () => degrees_answer(i));
+function degrees_buildButtons(){
+  for(let i=1;i<=7;i++){
+    const b=document.createElement("button");
+    b.textContent=String(i);
+    b.dataset.degree=String(i);
+    b.addEventListener("click", ()=>degrees_answer(i));
     degAnswers.appendChild(b);
   }
 }
 degrees_buildButtons();
 
-function degrees_setAnswerButtonsEnabled(enabled) {
-  degAnswers.querySelectorAll("button").forEach(b => b.disabled = !enabled);
+function degrees_setAnswerButtonsEnabled(enabled){
+  degAnswers.querySelectorAll("button").forEach(b=>b.disabled=!enabled);
 }
 
-async function degrees_playTonic() {
+async function degrees_playTonic(){
   await playSingleMidi(TONIC_MIDI, 0.9, 0.9);
-  statusEl.textContent = "נוגן דו (1) לרפרנס.";
+  statusEl.textContent="נוגן דו (1) לרפרנס.";
 }
 
-async function degrees_playCurrent() {
-  if (deg_midi === null) return;
+async function degrees_playCurrent(){
+  if(deg_midi==null) return;
   await playSingleMidi(deg_midi, 1.0, 0.9);
-  statusEl.textContent = "שמע → איזה דרגה זה? (1–7)";
+  statusEl.textContent="שמע → איזה דרגה זה? (1–7)";
 }
 
-async function degrees_newRound() {
-  deg_degree = 1 + Math.floor(Math.random() * 7);
-  const octaveShift = (Math.random() < 0.5) ? -12 : +12;
-  const pcOffset = DEGREE_PCS[deg_degree - 1];
+async function degrees_newRound(){
+  deg_degree = 1 + Math.floor(Math.random()*7);
+  const octaveShift = (Math.random()<0.5)?-12:+12;
+  const pcOffset = DEGREE_PCS[deg_degree-1];
   deg_midi = TONIC_MIDI + pcOffset + octaveShift;
-
   degrees_setAnswerButtonsEnabled(true);
   clearResult();
   deg_questionStart = performance.now();
-
   await degrees_playCurrent();
 }
 
-async function degrees_replayOrStart() {
-  if (deg_midi === null) { await degrees_newRound(); return; }
+async function degrees_replayOrStart(){
+  if(deg_midi==null){ await degrees_newRound(); return; }
   await degrees_playCurrent();
 }
 
-function degrees_answer(userDegree) {
-  if (deg_degree === null) return;
-  const correct = (userDegree === deg_degree);
-
-  const userText = String(userDegree);
-  const correctText = String(deg_degree);
-
+function degrees_answer(userDegree){
+  if(deg_degree==null) return;
+  const correct = (userDegree===deg_degree);
+  const userText=String(userDegree);
+  const correctText=String(deg_degree);
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
   setBigAnswer(correctText);
   setResult(userText, correctText, correct);
-
   degrees_setAnswerButtonsEnabled(false);
-
-  const rt = (typeof deg_questionStart === "number") ? (performance.now() - deg_questionStart) / 1000 : null;
+  const rt = (typeof deg_questionStart==="number") ? (performance.now()-deg_questionStart)/1000 : null;
   recordDegrees(userDegree, deg_degree, correct, rt);
 }
 
-degPlayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_newRound(); });
-degReplayBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_replayOrStart(); });
-playTonicBtn.addEventListener("click", () => { if (activeMode === "degrees") degrees_playTonic(); });
+degPlayBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") degrees_newRound(); });
+degReplayBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") degrees_replayOrStart(); });
+playTonicBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") degrees_playTonic(); });
 
-/* ===================== KEYBOARD (layout independent) ===================== */
-window.addEventListener("keydown", (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const code = e.code;
+/* Keyboard */
+window.addEventListener("keydown", (e)=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const code=e.code;
 
-  if (code === "F1") { setMode("thirds"); return; }
-  if (code === "F2") { setMode("degrees"); return; }
+  if(code==="F1"){ setMode("thirds"); return; }
+  if(code==="F2"){ setMode("degrees"); return; }
 
-  if (code === "Space") {
+  if(code==="Space"){
     e.preventDefault();
-    if (activeMode === "thirds") thirds_newRound();
-    else degrees_newRound();
+    if(activeMode==="thirds") thirds_newRound(); else degrees_newRound();
     return;
   }
-
-  if (code === "KeyR") {
+  if(code==="KeyR"){
     e.preventDefault();
-    if (activeMode === "thirds") thirds_replayOrStart();
-    else degrees_replayOrStart();
+    if(activeMode==="thirds") thirds_replayOrStart(); else degrees_replayOrStart();
     return;
   }
 
-  if (activeMode === "thirds") {
-    if (code === "KeyM" || code === "KeyF") {
-      e.preventDefault();
-      if (!majorBtn.disabled) thirds_answer(true);
-      return;
-    }
-    if (code === "KeyN" || code === "KeyD") {
-      e.preventDefault();
-      if (!minorBtn.disabled) thirds_answer(false);
-      return;
-    }
+  if(activeMode==="thirds"){
+    if(code==="KeyM"||code==="KeyF"){ e.preventDefault(); if(!majorBtn.disabled) thirds_answer(true); return; }
+    if(code==="KeyN"||code==="KeyD"){ e.preventDefault(); if(!minorBtn.disabled) thirds_answer(false); return; }
     return;
   }
 
-  if (activeMode === "degrees") {
-    if (code === "KeyC") {
-      e.preventDefault();
-      degrees_playTonic();
-      return;
-    }
-    if (code.startsWith("Digit")) {
+  if(activeMode==="degrees"){
+    if(code==="KeyC"){ e.preventDefault(); degrees_playTonic(); return; }
+    if(code.startsWith("Digit")){
       const d = Number(code.slice(5));
-      if (d >= 1 && d <= 7) {
+      if(d>=1 && d<=7){
         const btn = degAnswers.querySelector(`button[data-degree="${d}"]`);
-        if (btn && !btn.disabled) degrees_answer(d);
+        if(btn && !btn.disabled) degrees_answer(d);
       }
       return;
     }
@@ -841,108 +801,7 @@ window.addEventListener("keydown", (e) => {
 // init
 clearResult();
 updateStatsUI();
-
-/* ===================== STATS HELPERS (need these defined after functions above) ===================== */
-function recordThirds(userSaysMajor, correctIsMajor, isCorrect, rt) {
-  if (userSaysMajor) stats.thirdsAnsweredMajor += 1; else stats.thirdsAnsweredMinor += 1;
-  if (!isCorrect) { if (correctIsMajor) stats.thirdsWrongWhenCorrectWasMajor += 1; else stats.thirdsWrongWhenCorrectWasMinor += 1; }
-  recordAnswerBase("thirds", isCorrect, rt);
-  updateStatsUI();
-}
-function recordDegrees(userDegree, correctDegree, isCorrect, rt) {
-  stats.degreesAnswered[userDegree] += 1;
-  stats.degreesCorrectWas[correctDegree] += 1;
-  recordAnswerBase("degrees", isCorrect, rt);
-  updateStatsUI();
-}
-</script>
-
-<script>
-/* ===================== STATS BASE (kept in separate block to avoid reordering issues) ===================== */
-function recordAnswerBase(mode, isCorrect, responseTimeSec) {
-  stats.all.total += 1;
-  stats[mode].total += 1;
-  if (isCorrect) { stats.all.correct += 1; stats[mode].correct += 1; }
-
-  if (isCorrect) { stats.streakNow += 1; if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow; }
-  else { stats.streakNow = 0; }
-
-  if (typeof responseTimeSec === "number" && isFinite(responseTimeSec) && responseTimeSec >= 0) {
-    stats.all.timeSum += responseTimeSec; stats.all.timeCount += 1;
-    stats[mode].timeSum += responseTimeSec; stats[mode].timeCount += 1;
-  }
-}
-</script>
-
-<script>
-/* ===================== STATS STATE + UI (kept in separate block) ===================== */
-const stats = {
-  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
-  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
-  degrees: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
-  streakNow: 0,
-  streakBest: 0,
-
-  thirdsWrongWhenCorrectWasMajor: 0,
-  thirdsWrongWhenCorrectWasMinor: 0,
-  thirdsAnsweredMajor: 0,
-  thirdsAnsweredMinor: 0,
-
-  degreesAnswered: Array(8).fill(0),
-  degreesCorrectWas: Array(8).fill(0),
-};
-
-function pct(c, t) { if (t === 0) return "—"; return Math.round((c/t)*100) + "% (" + c + "/" + t + ")"; }
-function avgSec(sum, count) { if (count === 0) return "—"; return (sum/count).toFixed(2) + "s"; }
-
-function renderDegreeDist() {
-  let html = "";
-  for (let d = 1; d <= 7; d++) {
-    html += "<tr><td>" + d + "</td><td>" + stats.degreesAnswered[d] + "</td><td>" + stats.degreesCorrectWas[d] + "</td></tr>";
-  }
-  degDistBody.innerHTML = html;
-}
-
-function updateStatsUI() {
-  accAllEl.textContent = pct(stats.all.correct, stats.all.total);
-  streakNowEl.textContent = String(stats.streakNow);
-  streakBestEl.textContent = String(stats.streakBest);
-  avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
-
-  accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
-  accDegreesEl.textContent = pct(stats.degrees.correct, stats.degrees.total);
-
-  errMajorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMajor);
-  errMinorEl.textContent = String(stats.thirdsWrongWhenCorrectWasMinor);
-
-  thirdsAnsMajorEl.textContent = String(stats.thirdsAnsweredMajor);
-  thirdsAnsMinorEl.textContent = String(stats.thirdsAnsweredMinor);
-
-  renderDegreeDist();
-}
-
-resetStatsBtn.addEventListener("click", () => {
-  stats.all = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
-  stats.thirds = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
-  stats.degrees = { correct: 0, total: 0, timeSum: 0, timeCount: 0 };
-  stats.streakNow = 0; stats.streakBest = 0;
-
-  stats.thirdsWrongWhenCorrectWasMajor = 0;
-  stats.thirdsWrongWhenCorrectWasMinor = 0;
-  stats.thirdsAnsweredMajor = 0;
-  stats.thirdsAnsweredMinor = 0;
-
-  stats.degreesAnswered = Array(8).fill(0);
-  stats.degreesCorrectWas = Array(8).fill(0);
-
-  updateStatsUI();
-});
-</script>
-
-<script>
-/* ===================== MODE 2 STATS TABLE ELEMENTS (bind once) ===================== */
 renderDegreeDist();
-updateStatsUI();
 </script>
 
 </body>
