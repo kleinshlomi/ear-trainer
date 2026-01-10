@@ -85,7 +85,7 @@
       flex-wrap: wrap;
     }
 
-    /* Degree answer buttons (shown only in triads-degree mode) */
+    /* Degree answer buttons shown only in triads-degree mode */
     #degreeAnswerRow { display: none; }
     .degreeRow {
       display: flex;
@@ -96,6 +96,28 @@
       margin-top: 6px;
     }
     .degreeRow button { min-width: 70px; }
+
+    .statsPanel {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid #aaa;
+      border-radius: 12px;
+    }
+    .statsGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stat { min-width: 230px; }
+    .stat b { font-weight: 900; }
+    .btnDanger {
+      border: 1px solid #b30000;
+      color: #b30000;
+      background: transparent;
+      border-radius: 10px;
+    }
   </style>
 </head>
 <body>
@@ -122,15 +144,13 @@
   </div>
 
   <div class="small">
-    קיצורים בסיסיים: <kbd>Space</kbd> נגן · <kbd>R</kbd> נגן שוב · דו4: <kbd>C</kbd><br/>
-    מצב טרצות: מז'ור = <kbd>M</kbd>/<kbd>F</kbd> · מינור = <kbd>N</kbd>/<kbd>D</kbd><br/>
-    מצב טריאדות־דרגות (רק כשהצ'קבוקס “טריאדה” מסומן):<br/>
-    1=<kbd>J</kbd>(ח) · 2=<kbd>K</kbd>(ל) · 3=<kbd>L</kbd>(ך) · 4=<kbd>;</kbd>(ף) · 5=<kbd>U</kbd>(ו) · 6=<kbd>I</kbd>(ן) · 7=<kbd>O</kbd>(ם)
+    <kbd>Space</kbd> נגן · <kbd>R</kbd> נגן שוב · דו4: <kbd>C</kbd><br/>
+    טרצות: מז'ור <kbd>M</kbd>/<kbd>F</kbd> · מינור <kbd>N</kbd>/<kbd>D</kbd><br/>
+    טריאדות־דרגות: 1=<kbd>J</kbd> · 2=<kbd>K</kbd> · 3=<kbd>L</kbd> · 4=<kbd>;</kbd> · 5=<kbd>U</kbd> · 6=<kbd>I</kbd> · 7=<kbd>O</kbd>
   </div>
 
   <hr />
 
-  <!-- MODE 1 -->
   <section class="panel active" id="panelThirds">
     <h3>מצב 1</h3>
 
@@ -139,38 +159,22 @@
       <button id="replayBtn">נגן שוב (R)</button>
     </div>
 
-    <!-- Answer buttons for thirds mode -->
+    <!-- Thirds answers -->
     <div class="row" id="thirdsAnswerRow">
       <button id="majorBtn" disabled>מז'ור</button>
       <button id="minorBtn" disabled>מינור</button>
     </div>
 
-    <!-- Answer buttons for triads-degree mode -->
+    <!-- Degree answers (triads-degree mode only) -->
     <div class="row" id="degreeAnswerRow">
       <div class="small">ענה דרגה (I–vii°):</div>
       <div class="degreeRow" id="degreeButtons"></div>
     </div>
 
-    <label>
-      <input type="checkbox" id="asChord" />
-      לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו.
-    </label>
-
-    <label>
-      <input type="checkbox" id="randomStyle" />
-      מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.
-    </label>
-
-    <label>
-      <input type="checkbox" id="diatonicCThirdsOnly" />
-      להגביל לזוגות טרצה מתוך דו מז'ור בלבד (דו–מי, רה–פה, ... , סי–רה)
-    </label>
-
-    <!-- ✅ Triads degree mode -->
-    <label>
-      <input type="checkbox" id="triadsDegreeMode" />
-      בדו מז'ור: לנגן טריאדה (3 צלילים) ולבחון על דרגה (I, ii, iii, IV, V, vi, vii°)
-    </label>
+    <label><input type="checkbox" id="asChord" /> לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו.</label>
+    <label><input type="checkbox" id="randomStyle" /> מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.</label>
+    <label><input type="checkbox" id="diatonicCThirdsOnly" /> להגביל לזוגות טרצה מתוך דו מז'ור בלבד (דו–מי, רה–פה, ... , סי–רה)</label>
+    <label><input type="checkbox" id="triadsDegreeMode" /> בדו מז'ור: לנגן טריאדה (3 צלילים) ולבחון על דרגה (I, ii, iii, IV, V, vi, vii°)</label>
 
     <label>
       טווח בסיסים (רק כשאין הגבלות): <span id="rangeLabel"></span>
@@ -182,15 +186,12 @@
     <label><input type="checkbox" id="avoidBlackRoot" /> להעדיף בסיסים על קלידים לבנים בלבד</label>
   </section>
 
-  <!-- MODE 2 (kept minimal placeholder as before) -->
   <section class="panel" id="panelDegrees">
     <h3>מצב 2: דרגות בסולם דו מז'ור (1–7)</h3>
-
     <div class="row">
       <button id="degPlayBtn">נגן צליל רנדומלי</button>
       <button id="degReplayBtn">נגן שוב (R)</button>
     </div>
-
     <div class="row" id="degAnswers" style="direction:ltr; display:flex; gap:8px; flex-wrap:wrap;"></div>
   </section>
 
@@ -203,7 +204,6 @@
         <span class="resultValue" id="userAnswerText">—</span>
         <span class="mark neutral" id="userAnswerMark">—</span>
       </div>
-
       <div class="resultItem">
         <span class="resultLabel">התשובה הנכונה:</span>
         <span class="resultValue" id="correctAnswerText">—</span>
@@ -212,6 +212,18 @@
   </div>
 
   <div id="bigAnswer"></div>
+
+  <!-- ✅ Stats are back -->
+  <div class="statsPanel">
+    <div class="statsGrid">
+      <div class="stat">דיוק כללי: <b><span id="accAll">—</span></b></div>
+      <div class="stat">רצף נכון: <b><span id="streakNow">0</span></b> · שיא: <b><span id="streakBest">0</span></b></div>
+      <div class="stat">ממוצע זמן תגובה: <b><span id="avgTimeAll">—</span></b></div>
+      <div class="stat">דיוק טרצות: <b><span id="accThirds">—</span></b></div>
+      <div class="stat">דיוק טריאדות־דרגות: <b><span id="accTriads">—</span></b></div>
+      <div class="stat"><button class="btnDanger" id="resetStatsBtn">איפוס סטטיסטיקה</button></div>
+    </div>
+  </div>
 
 <script>
 /* ===================== PIANO LOADER ===================== */
@@ -395,6 +407,67 @@ function setResult(userText, correctText, isCorrect) {
 }
 function clearResult() { setResult("—","—",null); setBigAnswer(""); }
 
+/* ===================== STATS (RESTORED) ===================== */
+const accAllEl = document.getElementById("accAll");
+const accThirdsEl = document.getElementById("accThirds");
+const accTriadsEl = document.getElementById("accTriads");
+const streakNowEl = document.getElementById("streakNow");
+const streakBestEl = document.getElementById("streakBest");
+const avgTimeAllEl = document.getElementById("avgTimeAll");
+const resetStatsBtn = document.getElementById("resetStatsBtn");
+
+const stats = {
+  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  triads: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  streakNow: 0,
+  streakBest: 0,
+};
+
+function pct(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "% ("+c+"/"+t+")"); }
+function avgSec(sum,cnt){ return cnt===0 ? "—" : (sum/cnt).toFixed(2)+"s"; }
+
+function updateStatsUI() {
+  accAllEl.textContent = pct(stats.all.correct, stats.all.total);
+  accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
+  accTriadsEl.textContent = pct(stats.triads.correct, stats.triads.total);
+  streakNowEl.textContent = String(stats.streakNow);
+  streakBestEl.textContent = String(stats.streakBest);
+  avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
+}
+
+function record(mode, isCorrect, rt) {
+  stats.all.total += 1;
+  stats[mode].total += 1;
+  if (isCorrect) {
+    stats.all.correct += 1;
+    stats[mode].correct += 1;
+  }
+
+  if (isCorrect) {
+    stats.streakNow += 1;
+    if (stats.streakNow > stats.streakBest) stats.streakBest = stats.streakNow;
+  } else {
+    stats.streakNow = 0;
+  }
+
+  if (typeof rt === "number" && isFinite(rt) && rt >= 0) {
+    stats.all.timeSum += rt; stats.all.timeCount += 1;
+    stats[mode].timeSum += rt; stats[mode].timeCount += 1;
+  }
+
+  updateStatsUI();
+}
+
+resetStatsBtn.addEventListener("click", () => {
+  stats.all = { correct:0,total:0,timeSum:0,timeCount:0 };
+  stats.thirds = { correct:0,total:0,timeSum:0,timeCount:0 };
+  stats.triads = { correct:0,total:0,timeSum:0,timeCount:0 };
+  stats.streakNow = 0;
+  stats.streakBest = 0;
+  updateStatsUI();
+});
+
 /* ===================== REFERENCE C4 ===================== */
 const refC4Btn = document.getElementById("refC4Btn");
 function playRefC4() { playSingleMidi(60); }
@@ -408,7 +481,7 @@ window.addEventListener("keydown", (e)=>{
   }
 });
 
-/* ===================== MODE 1: THIRDS vs TRIADS-DEGREE ===================== */
+/* ===================== MODE 1 ===================== */
 const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
 const majorBtn = document.getElementById("majorBtn");
@@ -435,7 +508,6 @@ function chooseChordNow() {
 
 const NOTE = { C:60, D:62, E:64, F:65, G:67, A:69, B:71 };
 
-/* 7 triads in C major, with degree number and Roman symbol */
 const TRIADS_DEGREES = [
   { degree: 1, roman: "I",     quality: "maj", midis: [NOTE.C, NOTE.E, NOTE.G] },
   { degree: 2, roman: "ii",    quality: "min", midis: [NOTE.D, NOTE.F, NOTE.A] },
@@ -446,7 +518,6 @@ const TRIADS_DEGREES = [
   { degree: 7, roman: "vii°",  quality: "dim", midis: [NOTE.B, NOTE.D+12, NOTE.F+12] },
 ];
 
-/* fixed diatonic thirds pairs in C (for the old toggle) */
 const C_THIRDS = [
   { midis: [NOTE.C, NOTE.E],     quality: "maj" },
   { midis: [NOTE.D, NOTE.F],     quality: "min" },
@@ -457,23 +528,18 @@ const C_THIRDS = [
   { midis: [NOTE.B, NOTE.D+12],  quality: "min" },
 ];
 
-function qualityHeb(q){ return q==="maj" ? "מז'ור" : q==="min" ? "מינור" : "מוקטן"; }
-
 function showTriadsDegreeUI(on) {
-  // When triads-degree mode is ON, hide major/minor buttons and show 1..7 buttons
   thirdsAnswerRow.style.display = on ? "none" : "block";
   degreeAnswerRow.style.display = on ? "block" : "none";
-  // Also: diatonic thirds toggle is irrelevant while triads mode is ON (we just ignore it)
 }
 showTriadsDegreeUI(triadsDegreeModeChk.checked);
 
 triadsDegreeModeChk.addEventListener("change", () => {
   showTriadsDegreeUI(triadsDegreeModeChk.checked);
   clearResult();
-  // disable buttons until next play
   majorBtn.disabled = true;
   minorBtn.disabled = true;
-  setBigAnswer("");
+  enableDegreeButtons(false);
 });
 
 function buildDegreeButtons() {
@@ -495,19 +561,11 @@ function enableDegreeButtons(enabled) {
 
 let q = {
   midis: null,
-  // For thirds mode: q.correctQuality ("maj"/"min")
-  // For triads-degree mode: q.correctDegree (1..7) and q.correctRoman
   correctQuality: null,
   correctDegree: null,
-  correctRoman: null
+  correctRoman: null,
+  questionStart: null,
 };
-
-function setQuestionNone() {
-  q.midis = null;
-  q.correctQuality = null;
-  q.correctDegree = null;
-  q.correctRoman = null;
-}
 
 function isWhiteKey(midi){ const pc=((midi%12)+12)%12; return ![1,3,6,8,10].includes(pc); }
 function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
@@ -541,30 +599,29 @@ async function playCurrent(){
   if(chord) await playMidiListSimul(q.midis);
   else await playMidiListArp(q.midis);
 
-  if(triadsDegreeModeChk.checked){
-    statusEl.textContent = "שמע → איזו דרגה זה? (I–vii°)";
-  } else {
-    statusEl.textContent = "שמע → ענה מז'ור/מינור.";
-  }
+  statusEl.textContent = triadsDegreeModeChk.checked
+    ? "שמע → איזו דרגה זה? (I–vii°)"
+    : "שמע → ענה מז'ור/מינור.";
 }
 
 async function newRound(){
   clearResult();
+  q.questionStart = performance.now();
 
   if(triadsDegreeModeChk.checked){
-    // triads-degree mode: pick from 7 diatonic triads
     const t = TRIADS_DEGREES[Math.floor(Math.random()*TRIADS_DEGREES.length)];
     q.midis = t.midis;
     q.correctDegree = t.degree;
     q.correctRoman = t.roman;
-    q.correctQuality = t.quality; // not asked, but kept in case
+    q.correctQuality = t.quality;
     enableDegreeButtons(true);
     majorBtn.disabled = true;
     minorBtn.disabled = true;
   } else {
-    // thirds mode
-    const useC = diatonicCThirdsOnlyChk.checked;
-    if(useC){
+    q.correctDegree = null;
+    q.correctRoman = null;
+
+    if(diatonicCThirdsOnlyChk.checked){
       const p = C_THIRDS[Math.floor(Math.random()*C_THIRDS.length)];
       q.midis = p.midis;
       q.correctQuality = p.quality;
@@ -574,8 +631,6 @@ async function newRound(){
       q.midis = [root, root + (isMaj ? 4 : 3)];
       q.correctQuality = isMaj ? "maj" : "min";
     }
-    q.correctDegree = null;
-    q.correctRoman = null;
 
     majorBtn.disabled = false;
     minorBtn.disabled = false;
@@ -590,7 +645,9 @@ async function replayOrStart(){
   await playCurrent();
 }
 
-function answerQuality(guessQ){ // "maj" | "min"
+function qualityHeb(q){ return q==="maj" ? "מז'ור" : "מינור"; }
+
+function answerQuality(guessQ){
   if(!q.correctQuality) return;
   const correct = (guessQ === q.correctQuality);
   setResult(qualityHeb(guessQ), qualityHeb(q.correctQuality), correct);
@@ -598,6 +655,9 @@ function answerQuality(guessQ){ // "maj" | "min"
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
   majorBtn.disabled = true;
   minorBtn.disabled = true;
+
+  const rt = (performance.now() - q.questionStart) / 1000;
+  record("thirds", correct, rt);
 }
 
 function romanForDegree(d){
@@ -607,7 +667,6 @@ function romanForDegree(d){
 function answerDegree(d){
   if(q.correctDegree == null) return;
   const correct = (d === q.correctDegree);
-
   const userRoman = romanForDegree(d);
   const correctRoman = q.correctRoman || romanForDegree(q.correctDegree);
 
@@ -616,25 +675,18 @@ function answerDegree(d){
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
 
   enableDegreeButtons(false);
+
+  const rt = (performance.now() - q.questionStart) / 1000;
+  record("triads", correct, rt);
 }
 
 playBtn.addEventListener("click", newRound);
 replayBtn.addEventListener("click", replayOrStart);
+majorBtn.addEventListener("click", ()=>answerQuality("maj"));
+minorBtn.addEventListener("click", ()=>answerQuality("min"));
 
-majorBtn.addEventListener("click", () => answerQuality("maj"));
-minorBtn.addEventListener("click", () => answerQuality("min"));
-
-/* ===================== KEYBOARD ===================== */
-/*
-  Triads-degree mode answer mapping (physical keys):
-  1: KeyJ (ח)
-  2: KeyK (ל)
-  3: KeyL (ך)
-  4: Semicolon (; / :) (ף)
-  5: KeyU (ו)
-  6: KeyI (ן)
-  7: KeyO (ם)
-*/
+/* Keyboard mapping for triads-degree mode:
+   1 KeyJ, 2 KeyK, 3 KeyL, 4 Semicolon, 5 KeyU, 6 KeyI, 7 KeyO */
 window.addEventListener("keydown", (e)=>{
   if(e.metaKey||e.ctrlKey||e.altKey) return;
   const code = e.code;
@@ -654,56 +706,49 @@ window.addEventListener("keydown", (e)=>{
 
     if(d !== null){
       e.preventDefault();
-      // Only if degree buttons are enabled (i.e., question active)
       const btn = degreeButtons.querySelector(`button[data-degree="${d}"]`);
       if(btn && !btn.disabled) answerDegree(d);
       return;
     }
-
-    // In triads-degree mode, ignore M/F/N/D/S as answers
     return;
   }
 
-  // Regular thirds mode answers
   if(code === "KeyM" || code === "KeyF"){ e.preventDefault(); if(!majorBtn.disabled) answerQuality("maj"); return; }
   if(code === "KeyN" || code === "KeyD"){ e.preventDefault(); if(!minorBtn.disabled) answerQuality("min"); return; }
 });
 
-/* ===================== MODE 2 MINIMAL ===================== */
+/* Unlock button */
+unlockBtn.addEventListener("click", async () => {
+  try {
+    setAudioBadgeBad("טוען סאונד…");
+    await ensureAudioReady();
+    setAudioBadgeOk("סאונד הופעל");
+  } catch (_) {}
+});
+
+/* Mode 2 (kept minimal placeholder) */
 const tabThirds = document.getElementById("tabThirds");
 const tabDegrees = document.getElementById("tabDegrees");
 const panelThirds = document.getElementById("panelThirds");
 const panelDegrees = document.getElementById("panelDegrees");
-let activeMode = "thirds";
-function setMode(mode){
-  activeMode = mode;
-  tabThirds.classList.toggle("active", mode==="thirds");
-  tabDegrees.classList.toggle("active", mode==="degrees");
-  panelThirds.classList.toggle("active", mode==="thirds");
-  panelDegrees.classList.toggle("active", mode==="degrees");
-}
-tabThirds.addEventListener("click", ()=>setMode("thirds"));
-tabDegrees.addEventListener("click", ()=>setMode("degrees"));
+
+tabThirds.addEventListener("click", ()=>{ panelThirds.classList.add("active"); panelDegrees.classList.remove("active"); tabThirds.classList.add("active"); tabDegrees.classList.remove("active"); });
+tabDegrees.addEventListener("click", ()=>{ panelDegrees.classList.add("active"); panelThirds.classList.remove("active"); tabDegrees.classList.add("active"); tabThirds.classList.remove("active"); });
 
 const degPlayBtn = document.getElementById("degPlayBtn");
 const degReplayBtn = document.getElementById("degReplayBtn");
 const degAnswers = document.getElementById("degAnswers");
-
-function degrees_buildButtons(){
-  for(let i=1;i<=7;i++){
-    const b=document.createElement("button");
-    b.textContent=String(i);
-    degAnswers.appendChild(b);
-  }
+for(let i=1;i<=7;i++){
+  const b=document.createElement("button");
+  b.textContent=String(i);
+  degAnswers.appendChild(b);
 }
-degrees_buildButtons();
-
-degPlayBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") playRefC4(); });
-degReplayBtn.addEventListener("click", ()=>{ if(activeMode==="degrees") playRefC4(); });
+degPlayBtn.addEventListener("click", ()=>playRefC4());
+degReplayBtn.addEventListener("click", ()=>playRefC4());
 
 /* Init */
-setQuestionNone();
 clearResult();
+updateStatsUI();
 </script>
 
 </body>
