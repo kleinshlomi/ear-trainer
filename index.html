@@ -483,7 +483,24 @@ resetStatsBtn.addEventListener("click", () => {
 
 /* ===================== REFERENCE C4 ===================== */
 const refC4Btn = document.getElementById("refC4Btn");
-function playRefC4() { playSingleMidi(60); }
+function playRefC4() {
+  // If triads-degree mode is ON, reference becomes C major triad built on C4
+  if (triadsDegreeModeChk && triadsDegreeModeChk.checked) {
+    const chord = (randomStyleChk && randomStyleChk.checked) ? (Math.random() < 0.5) : (asChordChk && asChordChk.checked);
+    const triad = [60, 64, 67]; // C4 E4 G4
+    if (chord) {
+      playMidiListSimul(triad);
+    } else {
+      playMidiListArp(triad);
+    }
+    statusEl.textContent = chord ? "רפרנס: אקורד דו מז'ור (בו־זמנית)" : "רפרנס: אקורד דו מז'ור (ארפג'יו)";
+    return;
+  }
+
+  // Otherwise: single C4
+  playSingleMidi(60);
+  statusEl.textContent = "רפרנס: דו4";
+}
 refC4Btn.addEventListener("click", playRefC4);
 
 window.addEventListener("keydown", (e)=>{
