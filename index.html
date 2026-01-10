@@ -132,7 +132,6 @@
     }
     .miniTable th { font-weight: 900; background: #f6f6f6; }
 
-    /* NEW: sliders boxes */
     #biasRow, #adaptiveRow {
       display:none;
       margin-top:8px;
@@ -196,18 +195,18 @@
     <label><input type="checkbox" id="randomStyle" /> מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.</label>
     <label><input type="checkbox" id="diatonicCThirdsOnly" /> להגביל לזוגות טרצה מתוך דו מז'ור בלבד</label>
 
-    <label><input type="checkbox" id="triadsDegreeMode" /> בדו מז'ור: טריאדות־דרגות (I, ii, iii, IV, V, vi, vii°)</label>
-    <label><input type="checkbox" id="commonProgressions" /> טריאדות: מצב מהלכים נפוצים (אקראי עם הטיה למהלכים מוכרים)</label>
+    <!-- ✅ defaults checked -->
+    <label><input type="checkbox" id="triadsDegreeMode" checked /> בדו מז'ור: טריאדות־דרגות (I, ii, iii, IV, V, vi, vii°)</label>
+    <label><input type="checkbox" id="commonProgressions" checked /> טריאדות: מצב מהלכים נפוצים (אקראי עם הטיה למהלכים מוכרים)</label>
 
-    <!-- Progression bias slider -->
     <div id="biasRow">
       <div class="small" style="font-weight:900;">עוצמת הטיה למהלכים נפוצים: <span id="biasPct">70%</span></div>
       <input id="biasSlider" type="range" min="0" max="100" step="5" value="70" />
       <div class="small">0% = אקראי טהור · 100% = כמעט תמיד מהלכים נפוצים</div>
     </div>
 
-    <!-- Adaptive mode -->
-    <label><input type="checkbox" id="adaptiveTrainer" /> טריאדות: מצב אדפטיבי (לחזק דרגות חלשות עד שהדיוקים מתיישרים)</label>
+    <label><input type="checkbox" id="adaptiveTrainer" checked /> טריאדות: מצב אדפטיבי (לחזק דרגות חלשות עד שהדיוקים מתיישרים)</label>
+
     <div id="adaptiveRow">
       <div class="small" style="font-weight:900;">עוצמת אדפטיביות: <span id="adaptivePct">70%</span></div>
       <input id="adaptiveSlider" type="range" min="0" max="100" step="5" value="70" />
@@ -450,24 +449,28 @@ function pct(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "% ("+c+"/"+t
 function avgSec(sum,cnt){ return cnt===0 ? "—" : (sum/cnt).toFixed(2)+"s"; }
 function pctShort(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "%"); }
 
-function renderTriadsDegreeStats(romanForDegreeFn) {
+function romanForDegree(d){
+  return TRIADS_DEGREES.find(x => x.degree === d)?.roman || String(d);
+}
+
+function renderTriadsDegreeStats() {
   let html = "";
   for (let d = 1; d <= 7; d++) {
     const a = stats.triadsByDegree[d].asked;
     const c = stats.triadsByDegree[d].correct;
-    html += "<tr><td>"+d+"</td><td>"+romanForDegreeFn(d)+"</td><td>"+a+"</td><td>"+c+"</td><td>"+pctShort(c,a)+"</td></tr>";
+    html += "<tr><td>"+d+"</td><td>"+romanForDegree(d)+"</td><td>"+a+"</td><td>"+c+"</td><td>"+pctShort(c,a)+"</td></tr>";
   }
   triadDegreeStatsBody.innerHTML = html;
 }
 
-function updateStatsUI(romanForDegreeFn) {
+function updateStatsUI() {
   accAllEl.textContent = pct(stats.all.correct, stats.all.total);
   accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
   accTriadsEl.textContent = pct(stats.triads.correct, stats.triads.total);
   streakNowEl.textContent = String(stats.streakNow);
   streakBestEl.textContent = String(stats.streakBest);
   avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
-  renderTriadsDegreeStats(romanForDegreeFn);
+  renderTriadsDegreeStats();
 }
 
 function record(mode, isCorrect, rt) {
@@ -495,7 +498,7 @@ resetStatsBtn.addEventListener("click", () => {
   stats.streakNow = 0;
   stats.streakBest = 0;
   stats.triadsByDegree = Array.from({length: 8}, () => ({ asked: 0, correct: 0 }));
-  updateStatsUI(romanForDegree);
+  updateStatsUI();
 });
 
 /* ===================== MODE 1 ===================== */
@@ -524,36 +527,28 @@ const thirdsAnswerRow = document.getElementById("thirdsAnswerRow");
 const degreeAnswerRow = document.getElementById("degreeAnswerRow");
 const degreeButtons = document.getElementById("degreeButtons");
 
-/* bias UI elements */
+/* Bias UI */
 const biasRow = document.getElementById("biasRow");
 const biasSlider = document.getElementById("biasSlider");
 const biasPct = document.getElementById("biasPct");
 
-function getBiasP() {
-  return Math.max(0, Math.min(1, Number(biasSlider.value) / 100));
-}
+function getBiasP() { return Math.max(0, Math.min(1, Number(biasSlider.value) / 100)); }
 function updateBiasLabel() { biasPct.textContent = String(biasSlider.value) + "%"; }
-function updateBiasUIVisibility() {
-  const show = triadsDegreeModeChk.checked && commonProgressionsChk.checked;
-  biasRow.style.display = show ? "block" : "none";
-}
-biasSlider.addEventListener("input", () => updateBiasLabel());
-updateBiasLabel();
 
-/* adaptive UI */
 function getAdaptiveP() { return Math.max(0, Math.min(1, Number(adaptiveSlider.value) / 100)); }
 function updateAdaptiveLabel() { adaptivePct.textContent = String(adaptiveSlider.value) + "%"; }
-function updateAdaptiveUIVisibility() {
-  const show = triadsDegreeModeChk.checked && adaptiveTrainerChk.checked;
-  adaptiveRow.style.display = show ? "block" : "none";
-}
-adaptiveSlider.addEventListener("input", () => updateAdaptiveLabel());
-updateAdaptiveLabel();
 
 function updateExtraUIVisibility() {
-  updateBiasUIVisibility();
-  updateAdaptiveUIVisibility();
+  biasRow.style.display = (triadsDegreeModeChk.checked && commonProgressionsChk.checked) ? "block" : "none";
+  adaptiveRow.style.display = (triadsDegreeModeChk.checked && adaptiveTrainerChk.checked) ? "block" : "none";
 }
+biasSlider.addEventListener("input", () => updateBiasLabel());
+adaptiveSlider.addEventListener("input", () => updateAdaptiveLabel());
+commonProgressionsChk.addEventListener("change", () => updateExtraUIVisibility());
+adaptiveTrainerChk.addEventListener("change", () => updateExtraUIVisibility());
+
+updateBiasLabel();
+updateAdaptiveLabel();
 
 /* chord choice */
 function chooseChordNow() {
@@ -561,12 +556,13 @@ function chooseChordNow() {
   return asChordChk.checked;
 }
 
-/* ✅ E shortcut: toggle asChord */
+/* Toggle chord mode (E) */
 function toggleAsChord() {
   asChordChk.checked = !asChordChk.checked;
   statusEl.textContent = asChordChk.checked ? "מצב נגינה: אקורד (בו־זמנית)" : "מצב נגינה: ארפג'יו";
 }
 
+/* Notes / triads */
 const NOTE = { C:60, D:62, E:64, F:65, G:67, A:69, B:71 };
 
 const TRIADS_DEGREES = [
@@ -594,6 +590,7 @@ function showTriadsDegreeUI(on) {
   degreeAnswerRow.style.display = on ? "block" : "none";
 }
 showTriadsDegreeUI(triadsDegreeModeChk.checked);
+updateExtraUIVisibility();
 
 triadsDegreeModeChk.addEventListener("change", () => {
   showTriadsDegreeUI(triadsDegreeModeChk.checked);
@@ -601,14 +598,12 @@ triadsDegreeModeChk.addEventListener("change", () => {
   enableDegreeButtons(false);
   majorBtn.disabled = triadsDegreeModeChk.checked;
   minorBtn.disabled = triadsDegreeModeChk.checked;
-  if(!triadsDegreeModeChk.checked) lastDegree = null;
+  lastDegree = null;
+  // reset lock
+  q.locked = false;
   updateExtraUIVisibility();
-  updateStatsUI(romanForDegree);
+  updateStatsUI();
 });
-
-commonProgressionsChk.addEventListener("change", () => updateExtraUIVisibility());
-adaptiveTrainerChk.addEventListener("change", () => updateExtraUIVisibility());
-updateExtraUIVisibility();
 
 function buildDegreeButtons() {
   degreeButtons.innerHTML = "";
@@ -627,6 +622,7 @@ function enableDegreeButtons(enabled) {
   degreeButtons.querySelectorAll("button").forEach(b => b.disabled = !enabled);
 }
 
+/* random roots */
 function isWhiteKey(midi){ const pc=((midi%12)+12)%12; return ![1,3,6,8,10].includes(pc); }
 function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
 function randInt(lo,hi){ return lo + Math.floor(Math.random()*(hi-lo+1)); }
@@ -653,7 +649,13 @@ lowNote.addEventListener("input", updateRangeLabel);
 highNote.addEventListener("input", updateRangeLabel);
 updateRangeLabel();
 
-let q = { midis:null, correctQuality:null, correctDegree:null, correctRoman:null, questionStart:null };
+/* ===================== LOCK: count only FIRST answer per question ===================== */
+let q = {
+  midis:null, correctQuality:null, correctDegree:null, correctRoman:null,
+  questionStart:null,
+  locked: false
+};
+
 let lastDegree = null;
 
 /* Weighted transitions */
@@ -678,37 +680,31 @@ function weightedChoice(pairs){
 }
 function uniformDegree(){ return 1 + Math.floor(Math.random()*7); }
 
-/* Adaptive pick: focus weak degrees */
+function weightedProgressionNext(prev){
+  if(prev == null) return weightedChoice([[1,6],[6,3],[4,2],[2,1],[5,1],[3,1],[7,1]]);
+  return weightedChoice(TRANSITIONS[prev] || [[1,1],[5,1],[6,1],[4,1],[2,1],[3,1],[7,1]]);
+}
+
 function pickWeakDegreeAdaptive() {
   const pairs = [];
   for (let d = 1; d <= 7; d++) {
     const a = stats.triadsByDegree[d].asked;
     const c = stats.triadsByDegree[d].correct;
     const acc = (c + 1) / (a + 2);            // smoothing
-    const weakness = 1 - acc;                 // higher = weaker
-    const explore = Math.sqrt(1 / (a + 1));   // higher if few samples
+    const weakness = 1 - acc;
+    const explore = Math.sqrt(1 / (a + 1));
     const w = weakness + 0.35 * explore + 0.05;
     pairs.push([d, w]);
   }
   return weightedChoice(pairs);
 }
 
-/* Base (progression-weighted) */
-function weightedProgressionNext(prev){
-  if(prev == null) return weightedChoice([[1,6],[6,3],[4,2],[2,1],[5,1],[3,1],[7,1]]);
-  return weightedChoice(TRANSITIONS[prev] || [[1,1],[5,1],[6,1],[4,1],[2,1],[3,1],[7,1]]);
-}
-
-/* Decide next degree with:
-   - progression bias slider (only if commonProgressions ON)
-   - adaptive override probability (only if adaptive ON) */
 function chooseDegree(prev){
-  // base
+  // base: progression mix with bias slider (if enabled)
   let degree;
   if(commonProgressionsChk.checked){
     const pProg = getBiasP();
-    if (Math.random() < pProg) degree = weightedProgressionNext(prev);
-    else degree = uniformDegree();
+    degree = (Math.random() < pProg) ? weightedProgressionNext(prev) : uniformDegree();
   } else {
     degree = uniformDegree();
   }
@@ -733,6 +729,7 @@ async function playCurrent(){
 async function newRound(){
   clearResult();
   q.questionStart = performance.now();
+  q.locked = false;              // ✅ unlock on new question
 
   if(triadsDegreeModeChk.checked){
     const degree = chooseDegree(lastDegree);
@@ -778,26 +775,34 @@ async function replayOrStart(){
 
 function qualityHeb(q){ return q==="maj" ? "מז'ור" : "מינור"; }
 
+function lockAfterAnswer() {
+  q.locked = true;
+  // disable all answer inputs until next question
+  majorBtn.disabled = true;
+  minorBtn.disabled = true;
+  enableDegreeButtons(false);
+}
+
 function answerQuality(guessQ){
+  if(q.locked) return;                 // ✅ ignore after first answer
   if(!q.correctQuality) return;
+
   const correct = (guessQ === q.correctQuality);
   setResult(qualityHeb(guessQ), qualityHeb(q.correctQuality), correct);
   setBigAnswer(qualityHeb(q.correctQuality));
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
-  majorBtn.disabled = true;
-  minorBtn.disabled = true;
 
   const rt = (performance.now() - q.questionStart) / 1000;
   record("thirds", correct, rt);
-  updateStatsUI(romanForDegree);
-}
+  updateStatsUI();
 
-function romanForDegree(d){
-  return TRIADS_DEGREES.find(x => x.degree === d)?.roman || String(d);
+  lockAfterAnswer();
 }
 
 function answerDegree(d){
+  if(q.locked) return;                 // ✅ ignore after first answer
   if(q.correctDegree == null) return;
+
   const correct = (d === q.correctDegree);
   const userRoman = romanForDegree(d);
   const correctRoman = q.correctRoman || romanForDegree(q.correctDegree);
@@ -805,14 +810,15 @@ function answerDegree(d){
   setResult(userRoman, correctRoman, correct);
   setBigAnswer(correctRoman);
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
-  enableDegreeButtons(false);
 
   stats.triadsByDegree[q.correctDegree].asked += 1;
   if (correct) stats.triadsByDegree[q.correctDegree].correct += 1;
 
   const rt = (performance.now() - q.questionStart) / 1000;
   record("triads", correct, rt);
-  updateStatsUI(romanForDegree);
+  updateStatsUI();
+
+  lockAfterAnswer();
 }
 
 playBtn.addEventListener("click", newRound);
@@ -820,7 +826,7 @@ replayBtn.addEventListener("click", replayOrStart);
 majorBtn.addEventListener("click", ()=>answerQuality("maj"));
 minorBtn.addEventListener("click", ()=>answerQuality("min"));
 
-/* Reference button behavior */
+/* Reference */
 const refC4Btn = document.getElementById("refC4Btn");
 function playRef(){
   if(triadsDegreeModeChk.checked){
@@ -868,18 +874,14 @@ window.addEventListener("keydown", (e)=>{
 
     if(d !== null){
       e.preventDefault();
-      if(q.correctDegree == null){
-        statusEl.textContent = "לחץ נגן רנדומלי קודם.";
-        return;
-      }
       answerDegree(d);
       return;
     }
     return;
   }
 
-  if(e.code === "KeyM" || e.code === "KeyF"){ e.preventDefault(); if(!majorBtn.disabled) answerQuality("maj"); return; }
-  if(e.code === "KeyN" || e.code === "KeyD"){ e.preventDefault(); if(!minorBtn.disabled) answerQuality("min"); return; }
+  if(e.code === "KeyM" || e.code === "KeyF"){ e.preventDefault(); answerQuality("maj"); return; }
+  if(e.code === "KeyN" || e.code === "KeyD"){ e.preventDefault(); answerQuality("min"); return; }
 });
 
 /* ======= Triads UI ======= */
@@ -895,9 +897,10 @@ triadsDegreeModeChk.addEventListener("change", () => {
   enableDegreeButtons(false);
   majorBtn.disabled = triadsDegreeModeChk.checked;
   minorBtn.disabled = triadsDegreeModeChk.checked;
-  if(!triadsDegreeModeChk.checked) lastDegree = null;
+  lastDegree = null;
+  q.locked = false;
   updateExtraUIVisibility();
-  updateStatsUI(romanForDegree);
+  updateStatsUI();
 });
 
 function buildDegreeButtons() {
@@ -949,9 +952,9 @@ degPlayBtn.addEventListener("click", ()=>playRef());
 degReplayBtn.addEventListener("click", ()=>playRef());
 
 /* Init */
-clearResult();
 updateExtraUIVisibility();
-updateStatsUI(romanForDegree);
+clearResult();
+updateStatsUI();
 </script>
 
 </body>
