@@ -85,7 +85,6 @@
       flex-wrap: wrap;
     }
 
-    /* Degree answer buttons shown only in triads-degree mode */
     #degreeAnswerRow { display: none; }
     .degreeRow {
       display: flex;
@@ -107,7 +106,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 12px 20px;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
     }
     .stat { min-width: 230px; }
@@ -118,6 +117,20 @@
       background: transparent;
       border-radius: 10px;
     }
+
+    .miniTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .miniTable th, .miniTable td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .miniTable th { font-weight: 900; background: #f6f6f6; }
   </style>
 </head>
 <body>
@@ -159,13 +172,11 @@
       <button id="replayBtn">נגן שוב (R)</button>
     </div>
 
-    <!-- Thirds answers -->
     <div class="row" id="thirdsAnswerRow">
       <button id="majorBtn" disabled>מז'ור</button>
       <button id="minorBtn" disabled>מינור</button>
     </div>
 
-    <!-- Degree answers (triads-degree mode only) -->
     <div class="row" id="degreeAnswerRow">
       <div class="small">ענה דרגה (I–vii°):</div>
       <div class="degreeRow" id="degreeButtons"></div>
@@ -213,7 +224,7 @@
 
   <div id="bigAnswer"></div>
 
-  <!-- ✅ Stats are back -->
+  <!-- Stats -->
   <div class="statsPanel">
     <div class="statsGrid">
       <div class="stat">דיוק כללי: <b><span id="accAll">—</span></b></div>
@@ -223,6 +234,21 @@
       <div class="stat">דיוק טריאדות־דרגות: <b><span id="accTriads">—</span></b></div>
       <div class="stat"><button class="btnDanger" id="resetStatsBtn">איפוס סטטיסטיקה</button></div>
     </div>
+
+    <!-- ✅ NEW: per-degree stats table -->
+    <div class="small" style="margin-top:10px; font-weight:900;">טריאדות־דרגות: סטטיסטיקה לפי דרגה</div>
+    <table class="miniTable">
+      <thead>
+        <tr>
+          <th>דרגה</th>
+          <th>סימון</th>
+          <th>נשאל</th>
+          <th>נכון</th>
+          <th>דיוק</th>
+        </tr>
+      </thead>
+      <tbody id="triadDegreeStatsBody"></tbody>
+    </table>
   </div>
 
 <script>
@@ -407,7 +433,7 @@ function setResult(userText, correctText, isCorrect) {
 }
 function clearResult() { setResult("—","—",null); setBigAnswer(""); }
 
-/* ===================== STATS (RESTORED) ===================== */
+/* ===================== STATS (with per-degree) ===================== */
 const accAllEl = document.getElementById("accAll");
 const accThirdsEl = document.getElementById("accThirds");
 const accTriadsEl = document.getElementById("accTriads");
@@ -415,6 +441,7 @@ const streakNowEl = document.getElementById("streakNow");
 const streakBestEl = document.getElementById("streakBest");
 const avgTimeAllEl = document.getElementById("avgTimeAll");
 const resetStatsBtn = document.getElementById("resetStatsBtn");
+const triadDegreeStatsBody = document.getElementById("triadDegreeStatsBody");
 
 const stats = {
   all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
@@ -422,18 +449,37 @@ const stats = {
   triads: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
   streakNow: 0,
   streakBest: 0,
+  triadsByDegree: Array.from({length: 8}, () => ({ asked: 0, correct: 0 })), // index 1..7
 };
 
 function pct(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "% ("+c+"/"+t+")"); }
 function avgSec(sum,cnt){ return cnt===0 ? "—" : (sum/cnt).toFixed(2)+"s"; }
+function pctShort(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "%"); }
 
-function updateStatsUI() {
+function renderTriadsDegreeStats(romanForDegreeFn) {
+  let html = "";
+  for (let d = 1; d <= 7; d++) {
+    const a = stats.triadsByDegree[d].asked;
+    const c = stats.triadsByDegree[d].correct;
+    html += "<tr>"
+      + "<td>" + d + "</td>"
+      + "<td>" + romanForDegreeFn(d) + "</td>"
+      + "<td>" + a + "</td>"
+      + "<td>" + c + "</td>"
+      + "<td>" + pctShort(c,a) + "</td>"
+      + "</tr>";
+  }
+  triadDegreeStatsBody.innerHTML = html;
+}
+
+function updateStatsUI(romanForDegreeFn) {
   accAllEl.textContent = pct(stats.all.correct, stats.all.total);
   accThirdsEl.textContent = pct(stats.thirds.correct, stats.thirds.total);
   accTriadsEl.textContent = pct(stats.triads.correct, stats.triads.total);
   streakNowEl.textContent = String(stats.streakNow);
   streakBestEl.textContent = String(stats.streakBest);
   avgTimeAllEl.textContent = avgSec(stats.all.timeSum, stats.all.timeCount);
+  renderTriadsDegreeStats(romanForDegreeFn);
 }
 
 function record(mode, isCorrect, rt) {
@@ -455,8 +501,6 @@ function record(mode, isCorrect, rt) {
     stats.all.timeSum += rt; stats.all.timeCount += 1;
     stats[mode].timeSum += rt; stats[mode].timeCount += 1;
   }
-
-  updateStatsUI();
 }
 
 resetStatsBtn.addEventListener("click", () => {
@@ -465,7 +509,8 @@ resetStatsBtn.addEventListener("click", () => {
   stats.triads = { correct:0,total:0,timeSum:0,timeCount:0 };
   stats.streakNow = 0;
   stats.streakBest = 0;
-  updateStatsUI();
+  stats.triadsByDegree = Array.from({length: 8}, () => ({ asked: 0, correct: 0 }));
+  updateStatsUI(romanForDegree);
 });
 
 /* ===================== REFERENCE C4 ===================== */
@@ -559,14 +604,6 @@ function enableDegreeButtons(enabled) {
   degreeButtons.querySelectorAll("button").forEach(b => b.disabled = !enabled);
 }
 
-let q = {
-  midis: null,
-  correctQuality: null,
-  correctDegree: null,
-  correctRoman: null,
-  questionStart: null,
-};
-
 function isWhiteKey(midi){ const pc=((midi%12)+12)%12; return ![1,3,6,8,10].includes(pc); }
 function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
 function randInt(lo,hi){ return lo + Math.floor(Math.random()*(hi-lo+1)); }
@@ -593,12 +630,19 @@ lowNote.addEventListener("input", updateRangeLabel);
 highNote.addEventListener("input", updateRangeLabel);
 updateRangeLabel();
 
+let q = {
+  midis: null,
+  correctQuality: null,
+  correctDegree: null,
+  correctRoman: null,
+  questionStart: null,
+};
+
 async function playCurrent(){
   if(!q.midis) return;
   const chord = chooseChordNow();
   if(chord) await playMidiListSimul(q.midis);
   else await playMidiListArp(q.midis);
-
   statusEl.textContent = triadsDegreeModeChk.checked
     ? "שמע → איזו דרגה זה? (I–vii°)"
     : "שמע → ענה מז'ור/מינור.";
@@ -658,6 +702,7 @@ function answerQuality(guessQ){
 
   const rt = (performance.now() - q.questionStart) / 1000;
   record("thirds", correct, rt);
+  updateStatsUI(romanForDegree);
 }
 
 function romanForDegree(d){
@@ -673,11 +718,15 @@ function answerDegree(d){
   setResult(userRoman, correctRoman, correct);
   setBigAnswer(correctRoman);
   statusEl.textContent = correct ? "✅ נכון" : "❌ לא נכון";
-
   enableDegreeButtons(false);
+
+  // per-degree stats
+  stats.triadsByDegree[q.correctDegree].asked += 1;
+  if (correct) stats.triadsByDegree[q.correctDegree].correct += 1;
 
   const rt = (performance.now() - q.questionStart) / 1000;
   record("triads", correct, rt);
+  updateStatsUI(romanForDegree);
 }
 
 playBtn.addEventListener("click", newRound);
@@ -685,8 +734,6 @@ replayBtn.addEventListener("click", replayOrStart);
 majorBtn.addEventListener("click", ()=>answerQuality("maj"));
 minorBtn.addEventListener("click", ()=>answerQuality("min"));
 
-/* Keyboard mapping for triads-degree mode:
-   1 KeyJ, 2 KeyK, 3 KeyL, 4 Semicolon, 5 KeyU, 6 KeyI, 7 KeyO */
 window.addEventListener("keydown", (e)=>{
   if(e.metaKey||e.ctrlKey||e.altKey) return;
   const code = e.code;
@@ -717,16 +764,7 @@ window.addEventListener("keydown", (e)=>{
   if(code === "KeyN" || code === "KeyD"){ e.preventDefault(); if(!minorBtn.disabled) answerQuality("min"); return; }
 });
 
-/* Unlock button */
-unlockBtn.addEventListener("click", async () => {
-  try {
-    setAudioBadgeBad("טוען סאונד…");
-    await ensureAudioReady();
-    setAudioBadgeOk("סאונד הופעל");
-  } catch (_) {}
-});
-
-/* Mode 2 (kept minimal placeholder) */
+/* Mode 2 minimal placeholder */
 const tabThirds = document.getElementById("tabThirds");
 const tabDegrees = document.getElementById("tabDegrees");
 const panelThirds = document.getElementById("panelThirds");
@@ -748,7 +786,7 @@ degReplayBtn.addEventListener("click", ()=>playRefC4());
 
 /* Init */
 clearResult();
-updateStatsUI();
+updateStatsUI(romanForDegree);
 </script>
 
 </body>
