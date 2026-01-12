@@ -139,6 +139,14 @@
       border:1px dashed #aaa;
       border-radius:10px;
     }
+
+    #playModeRow {
+      display:none;
+      margin-top:8px;
+      padding:8px 10px;
+      border:1px dashed #aaa;
+      border-radius:10px;
+    }
   </style>
 </head>
 <body>
@@ -167,7 +175,7 @@
   <div class="small">
     <kbd>Space</kbd> נגן · <kbd>R</kbd> נגן שוב · רפרנס: <kbd>C</kbd><br/>
     Toggle אקורד בו־זמנית: <kbd>E</kbd>/<kbd>e</kbd>/<kbd>ק</kbd><br/>
-    מצב "נגן דרגות" לטריאדות: <kbd>Q</kbd> (ואז JKL;UIO מנגנים)<br/>
+    מצב "נגן דרגות" לטריאדות: <kbd id="playModeKeyHint">P</kbd> (ואז JKL;UIO מנגנים)<br/>
     טרצות: מז'ור <kbd>M</kbd>/<kbd>F</kbd> · מינור <kbd>N</kbd>/<kbd>D</kbd><br/>
     טריאדות־דרגות: 1=<kbd>J</kbd> · 2=<kbd>K</kbd> · 3=<kbd>L</kbd> · 4=<kbd>;</kbd> · 5=<kbd>U</kbd> · 6=<kbd>I</kbd> · 7=<kbd>O</kbd>
   </div>
@@ -211,6 +219,18 @@
       <div class="small" style="font-weight:900;">עוצמת אדפטיביות: <span id="adaptivePct">70%</span></div>
       <input id="adaptiveSlider" type="range" min="0" max="100" step="5" value="70" />
       <div class="small">0% = כבוי · 100% = חיזוק חזק לדרגות חלשות</div>
+    </div>
+
+    <!-- NEW: On-screen controls for play-mode + key selection -->
+    <div id="playModeRow">
+      <div class="small" style="font-weight:900; margin-bottom:6px;">
+        מצב "נגן דרגות" (כשהוא פעיל: JKL;UIO מנגנים טריאדות במקום לענות)
+      </div>
+      <button id="playModeToggleBtn">מצב נגן דרגות: כבוי</button>
+      <button id="playModeKeyBtn">מקש מצב: P</button>
+      <div class="small" style="margin-top:6px;">
+        קיצור מקלדת: לחץ <kbd id="playModeKeyHint2">P</kbd> כדי להדליק/לכבות.
+      </div>
     </div>
 
     <label>
@@ -426,7 +446,7 @@ function setResult(userText, correctText, isCorrect) {
 }
 function clearResult() { setResult("—","—",null); setBigAnswer(""); }
 
-/* ===================== STATS + PER-DEGREE ===================== */
+/* ===================== MODE + STATS STATE ===================== */
 const accAllEl = document.getElementById("accAll");
 const accThirdsEl = document.getElementById("accThirds");
 const accTriadsEl = document.getElementById("accTriads");
@@ -436,20 +456,6 @@ const avgTimeAllEl = document.getElementById("avgTimeAll");
 const resetStatsBtn = document.getElementById("resetStatsBtn");
 const triadDegreeStatsBody = document.getElementById("triadDegreeStatsBody");
 
-const stats = {
-  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
-  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
-  triads: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
-  streakNow: 0,
-  streakBest: 0,
-  triadsByDegree: Array.from({length: 8}, () => ({ asked: 0, correct: 0 })),
-};
-
-function pct(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "% ("+c+"/"+t+")"); }
-function avgSec(sum,cnt){ return cnt===0 ? "—" : (sum/cnt).toFixed(2)+"s"; }
-function pctShort(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "%"); }
-
-/* ===================== MODE 1 ELEMENTS ===================== */
 const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
 const majorBtn = document.getElementById("majorBtn");
@@ -466,6 +472,10 @@ const adaptiveRow = document.getElementById("adaptiveRow");
 const adaptiveSlider = document.getElementById("adaptiveSlider");
 const adaptivePct = document.getElementById("adaptivePct");
 
+const biasRow = document.getElementById("biasRow");
+const biasSlider = document.getElementById("biasSlider");
+const biasPct = document.getElementById("biasPct");
+
 const lowNote = document.getElementById("lowNote");
 const highNote = document.getElementById("highNote");
 const rangeLabel = document.getElementById("rangeLabel");
@@ -475,9 +485,24 @@ const thirdsAnswerRow = document.getElementById("thirdsAnswerRow");
 const degreeAnswerRow = document.getElementById("degreeAnswerRow");
 const degreeButtons = document.getElementById("degreeButtons");
 
-const biasRow = document.getElementById("biasRow");
-const biasSlider = document.getElementById("biasSlider");
-const biasPct = document.getElementById("biasPct");
+const playModeRow = document.getElementById("playModeRow");
+const playModeToggleBtn = document.getElementById("playModeToggleBtn");
+const playModeKeyBtn = document.getElementById("playModeKeyBtn");
+const playModeKeyHint = document.getElementById("playModeKeyHint");
+const playModeKeyHint2 = document.getElementById("playModeKeyHint2");
+
+const stats = {
+  all: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  thirds: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  triads: { correct: 0, total: 0, timeSum: 0, timeCount: 0 },
+  streakNow: 0,
+  streakBest: 0,
+  triadsByDegree: Array.from({length: 8}, () => ({ asked: 0, correct: 0 })),
+};
+
+function pct(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "% ("+c+"/"+t+")"); }
+function avgSec(sum,cnt){ return cnt===0 ? "—" : (sum/cnt).toFixed(2)+"s"; }
+function pctShort(c,t){ return t===0 ? "—" : (Math.round((c/t)*100) + "%"); }
 
 function getBiasP() { return Math.max(0, Math.min(1, Number(biasSlider.value) / 100)); }
 function updateBiasLabel() { biasPct.textContent = String(biasSlider.value) + "%"; }
@@ -488,12 +513,12 @@ function updateAdaptiveLabel() { adaptivePct.textContent = String(adaptiveSlider
 function updateExtraUIVisibility() {
   biasRow.style.display = (triadsDegreeModeChk.checked && commonProgressionsChk.checked) ? "block" : "none";
   adaptiveRow.style.display = (triadsDegreeModeChk.checked && adaptiveTrainerChk.checked) ? "block" : "none";
+  playModeRow.style.display = triadsDegreeModeChk.checked ? "block" : "none";
 }
 biasSlider.addEventListener("input", () => updateBiasLabel());
 adaptiveSlider.addEventListener("input", () => updateAdaptiveLabel());
 commonProgressionsChk.addEventListener("change", () => updateExtraUIVisibility());
 adaptiveTrainerChk.addEventListener("change", () => updateExtraUIVisibility());
-
 updateBiasLabel();
 updateAdaptiveLabel();
 
@@ -506,7 +531,6 @@ function toggleAsChord() {
   statusEl.textContent = asChordChk.checked ? "מצב נגינה: אקורד (בו־זמנית)" : "מצב נגינה: ארפג'יו";
 }
 
-/* Notes */
 const NOTE = { C:60, D:62, E:64, F:65, G:67, A:69, B:71 };
 
 const TRIADS_DEGREES = [
@@ -581,7 +605,42 @@ resetStatsBtn.addEventListener("click", () => {
   updateStatsUI();
 });
 
-/* UI switching */
+/* ===================== Q/P PLAY MODE ===================== */
+let triadPlayMode = false;           // on/off
+let playModeKey = "KeyP";            // default P (changed from Q)
+const playModeKeyMap = { KeyP: "P", KeyQ: "Q" };
+
+function updatePlayModeUI() {
+  playModeToggleBtn.textContent = triadPlayMode ? "מצב נגן דרגות: פעיל" : "מצב נגן דרגות: כבוי";
+  playModeKeyBtn.textContent = "מקש מצב: " + playModeKeyMap[playModeKey];
+  playModeKeyHint.textContent = playModeKeyMap[playModeKey];
+  playModeKeyHint2.textContent = playModeKeyMap[playModeKey];
+}
+
+function setTriadPlayMode(on) {
+  triadPlayMode = on;
+  updatePlayModeUI();
+  statusEl.textContent = triadPlayMode
+    ? ("מצב נגן דרגות פעיל ("+playModeKeyMap[playModeKey]+"): J K L ; U I O ינגן טריאדות.")
+    : ("מצב נגן דרגות כבוי ("+playModeKeyMap[playModeKey]+").");
+}
+
+function togglePlayModeKey() {
+  playModeKey = (playModeKey === "KeyP") ? "KeyQ" : "KeyP";
+  updatePlayModeUI();
+  statusEl.textContent = "מקש מצב נגן דרגות עודכן ל-" + playModeKeyMap[playModeKey] + ".";
+}
+
+playModeToggleBtn.addEventListener("click", () => {
+  if (!triadsDegreeModeChk.checked) return;
+  setTriadPlayMode(!triadPlayMode);
+});
+playModeKeyBtn.addEventListener("click", () => {
+  if (!triadsDegreeModeChk.checked) return;
+  togglePlayModeKey();
+});
+
+/* ===================== TRIADS / THIRDS UI ===================== */
 function showTriadsDegreeUI(on) {
   thirdsAnswerRow.style.display = on ? "none" : "block";
   degreeAnswerRow.style.display = on ? "block" : "none";
@@ -589,7 +648,7 @@ function showTriadsDegreeUI(on) {
 showTriadsDegreeUI(triadsDegreeModeChk.checked);
 updateExtraUIVisibility();
 
-/* Build degree buttons */
+/* Degree buttons */
 function buildDegreeButtons() {
   degreeButtons.innerHTML = "";
   for (let d = 1; d <= 7; d++) {
@@ -609,52 +668,21 @@ function enableDegreeButtons(enabled) {
 
 triadsDegreeModeChk.addEventListener("change", () => {
   showTriadsDegreeUI(triadsDegreeModeChk.checked);
-  clearResult();
-  enableDegreeButtons(false);
-  majorBtn.disabled = triadsDegreeModeChk.checked;
-  minorBtn.disabled = triadsDegreeModeChk.checked;
-  lastDegree = null;
-  q.locked = false;
   updateExtraUIVisibility();
-  updateStatsUI();
+  if (!triadsDegreeModeChk.checked) {
+    triadPlayMode = false;
+  }
+  updatePlayModeUI();
 });
 
-/* random roots helpers */
-function isWhiteKey(midi){ const pc=((midi%12)+12)%12; return ![1,3,6,8,10].includes(pc); }
-function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
-function randInt(lo,hi){ return lo + Math.floor(Math.random()*(hi-lo+1)); }
-function pickRandomRoot(low,high,whiteOnly){
-  low=clamp(low,24,96); high=clamp(high,24,96);
-  if(high<low){ const t=low; low=high; high=t; }
-  const maxRoot=high-4, minRoot=low;
-  if(maxRoot<minRoot) return 60;
-  if(!whiteOnly) return randInt(minRoot,maxRoot);
-  for(let i=0;i<30;i++){ const m=randInt(minRoot,maxRoot); if(isWhiteKey(m)) return m; }
-  return randInt(minRoot,maxRoot);
-}
-function midiName(m){
-  const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const pc=((m%12)+12)%12;
-  return names[pc]+(Math.floor(m/12)-1);
-}
-function updateRangeLabel(){
-  const lo=Number(lowNote.value), hi=Number(highNote.value);
-  const a=Math.min(lo,hi), b=Math.max(lo,hi);
-  rangeLabel.textContent = midiName(a) + " עד " + midiName(b);
-}
-lowNote.addEventListener("input", updateRangeLabel);
-highNote.addEventListener("input", updateRangeLabel);
-updateRangeLabel();
-
-/* ===================== LOCK ===================== */
+/* ===================== SELECTION LOGIC ===================== */
 let q = {
   midis:null, correctQuality:null, correctDegree:null, correctRoman:null,
   questionStart:null,
-  locked: false
+  locked:false
 };
 let lastDegree = null;
 
-/* transitions */
 const TRANSITIONS = {
   1: [[5,6],[4,3],[6,2],[2,2],[1,1],[3,1]],
   2: [[5,6],[7,2],[4,2],[1,1],[6,1]],
@@ -711,7 +739,6 @@ function chooseDegree(prev){
   return degree;
 }
 
-/* Play current question */
 async function playCurrent(){
   if(!q.midis) return;
   const chord = chooseChordNow();
@@ -720,7 +747,6 @@ async function playCurrent(){
   statusEl.textContent = triadsDegreeModeChk.checked ? "שמע → איזו דרגה זה? (I–vii°)" : "שמע → ענה מז'ור/מינור.";
 }
 
-/* New question */
 async function newRound(){
   clearResult();
   q.questionStart = performance.now();
@@ -789,7 +815,6 @@ function answerQuality(guessQ){
   const rt = (performance.now() - q.questionStart) / 1000;
   record("thirds", correct, rt);
   updateStatsUI();
-
   lockAfterAnswer();
 }
 
@@ -811,11 +836,9 @@ function answerDegree(d){
   const rt = (performance.now() - q.questionStart) / 1000;
   record("triads", correct, rt);
   updateStatsUI();
-
   lockAfterAnswer();
 }
 
-/* Buttons */
 playBtn.addEventListener("click", newRound);
 replayBtn.addEventListener("click", replayOrStart);
 majorBtn.addEventListener("click", ()=>answerQuality("maj"));
@@ -836,20 +859,8 @@ function playRef(){
 }
 refC4Btn.addEventListener("click", playRef);
 
-/* ===================== NEW: Q mode for playing degrees ===================== */
-let triadPlayMode = false; // toggled by Q
-
-function setTriadPlayMode(on) {
-  triadPlayMode = on;
-  if (triadPlayMode) {
-    statusEl.textContent = "מצב נגן דרגות פעיל (Q): J K L ; U I O ינגן טריאדות. לחץ Q שוב כדי לצאת.";
-  } else {
-    statusEl.textContent = "מצב נגן דרגות כבוי (Q).";
-  }
-}
-
+/* Play triad by key (JKL;UIO) */
 function playTriadByDegreeKey(code) {
-  // mapping by physical key code
   let deg = null;
   if (code === "KeyJ") deg = 1;
   else if (code === "KeyK") deg = 2;
@@ -879,12 +890,10 @@ window.addEventListener("keydown", (e)=>{
   const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
   if (tag === "input" || tag === "textarea" || tag === "select") return;
 
-  // Q toggles play-mode, only relevant in triads mode
-  if (e.code === "KeyQ") {
-    if (triadsDegreeModeChk.checked) {
-      e.preventDefault();
-      setTriadPlayMode(!triadPlayMode);
-    }
+  // Toggle play-mode by selected key (default P)
+  if (e.code === playModeKey && triadsDegreeModeChk.checked) {
+    e.preventDefault();
+    setTriadPlayMode(!triadPlayMode);
     return;
   }
 
@@ -895,7 +904,7 @@ window.addEventListener("keydown", (e)=>{
       e.preventDefault();
       return;
     }
-    // while in play mode, we don't answer via JKL;UIO at all
+    // do not answer in play-mode
   }
 
   // E toggle chord mode
@@ -942,79 +951,11 @@ window.addEventListener("keydown", (e)=>{
   }
 });
 
-/* ===================== Triads UI + degree buttons ===================== */
-function buildDegreeButtons() {
-  degreeButtons.innerHTML = "";
-  for (let d = 1; d <= 7; d++) {
-    const btn = document.createElement("button");
-    btn.textContent = String(d);
-    btn.dataset.degree = String(d);
-    btn.disabled = true;
-    btn.addEventListener("click", () => answerDegree(d));
-    degreeButtons.appendChild(btn);
-  }
-}
-buildDegreeButtons();
-
-function enableDegreeButtons(enabled) {
-  degreeButtons.querySelectorAll("button").forEach(b => b.disabled = !enabled);
-}
-
-function showTriadsDegreeUI(on) {
-  thirdsAnswerRow.style.display = on ? "none" : "block";
-  degreeAnswerRow.style.display = on ? "block" : "none";
-}
-showTriadsDegreeUI(triadsDegreeModeChk.checked);
-
-triadsDegreeModeChk.addEventListener("change", () => {
-  showTriadsDegreeUI(triadsDegreeModeChk.checked);
-  clearResult();
-  enableDegreeButtons(false);
-  majorBtn.disabled = triadsDegreeModeChk.checked;
-  minorBtn.disabled = triadsDegreeModeChk.checked;
-  lastDegree = null;
-  q.locked = false;
-  // turn off play mode when leaving triads mode
-  if (!triadsDegreeModeChk.checked) triadPlayMode = false;
-  updateExtraUIVisibility();
-  updateStatsUI();
-});
-
-/* Range label */
-function midiName(m){
-  const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const pc=((m%12)+12)%12;
-  return names[pc]+(Math.floor(m/12)-1);
-}
-function updateRangeLabel(){
-  const lo=Number(lowNote.value), hi=Number(highNote.value);
-  const a=Math.min(lo,hi), b=Math.max(lo,hi);
-  rangeLabel.textContent = midiName(a) + " עד " + midiName(b);
-}
-lowNote.addEventListener("input", updateRangeLabel);
-highNote.addEventListener("input", updateRangeLabel);
-updateRangeLabel();
-
-/* Mode 2 minimal */
-const tabThirds = document.getElementById("tabThirds");
-const tabDegrees = document.getElementById("tabDegrees");
-const panelThirds = document.getElementById("panelThirds");
-const panelDegrees = document.getElementById("panelDegrees");
-
-tabThirds.addEventListener("click", ()=>{ panelThirds.classList.add("active"); panelDegrees.classList.remove("active"); tabThirds.classList.add("active"); tabDegrees.classList.remove("active"); });
-tabDegrees.addEventListener("click", ()=>{ panelDegrees.classList.add("active"); panelThirds.classList.remove("active"); tabDegrees.classList.add("active"); tabThirds.classList.remove("active"); });
-
-const degPlayBtn = document.getElementById("degPlayBtn");
-const degReplayBtn = document.getElementById("degReplayBtn");
-const degAnswers = document.getElementById("degAnswers");
-for(let i=1;i<=7;i++){ const b=document.createElement("button"); b.textContent=String(i); degAnswers.appendChild(b); }
-degPlayBtn.addEventListener("click", ()=>playRef());
-degReplayBtn.addEventListener("click", ()=>playRef());
-
 /* Init */
 updateExtraUIVisibility();
-clearResult();
 updateStatsUI();
+updatePlayModeUI();
+setTriadPlayMode(false);
 </script>
 
 </body>
