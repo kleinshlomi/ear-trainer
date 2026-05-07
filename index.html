@@ -437,7 +437,34 @@ function prefetchPianoSamples() {
   } catch (_) {}
 }
 prefetchPianoSamples();
+/* ✅ preload piano samples into browser cache */
+function prefetchPianoSamples() {
+  try {
+    const urls = SAMPLE_MAP.map(s => assetUrl(s.file));
 
+    const run = async () => {
+      await Promise.all(
+        urls.map(url =>
+          fetch(url, {
+            cache: "force-cache"
+          }).catch(() => null)
+        )
+      );
+
+      console.log("Piano samples prefetched.");
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", run, { once: true });
+    } else {
+      run();
+    }
+  } catch (err) {
+    console.warn("Prefetch failed:", err);
+  }
+}
+
+prefetchPianoSamples();
 /* ===================== UI HELPERS ===================== */
 const statusEl = document.getElementById("status");
 const bigAnswerEl = document.getElementById("bigAnswer");
