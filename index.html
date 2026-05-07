@@ -1,35 +1,517 @@
-<script>
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ear Trainer - Professional</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      direction: rtl;
+      padding: 10px;
+    }
+    .main-container {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 1200px;
+      width: 100%;
+      max-height: 95vh;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .main-container { grid-template-columns: 1fr; max-height: none; }
+    }
+    .left-panel, .right-panel { display: flex; flex-direction: column; }
+    h1 { text-align: center; margin-bottom: 20px; color: #333; font-size: 24px; grid-column: 1 / -1; }
+    .badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-align: center;
+      width: 100%;
+    }
+    .badge.ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .badge.bad { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    #audioBadge { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    .progress-text { text-align: center; font-size: 11px; color: #666; margin-bottom: 10px; }
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 5px;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      min-width: 60px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+    button:active { transform: translateY(0); }
+    button.active { outline: 3px solid #667eea; outline-offset: -3px; }
+    #unlockBtn { background: #6c757d; color: white; width: 100%; margin-bottom: 10px; min-height: 40px; }
+    #playBtn { background: #28a745; color: white; font-size: 14px; flex: 2; }
+    #replayBtn { background: #17a2b8; color: white; flex: 1; }
+    .mode-btn { background: #6c757d; color: white; }
+    .mode-btn.active { background: #007bff; color: white; }
+    #majorBtn, #minorBtn { background: #007bff; color: white; }
+    .degree-btn { background: #e83e8c; color: white; padding: 8px 10px; font-size: 11px; }
+    .degree-btn.active { background: #c2185b; }
+    #refC4Btn { background: #fd7e14; color: white; }
+    .status-display {
+      text-align: center;
+      margin: 15px 0;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    #status { font-size: 16px; color: #666; min-height: 20px; margin-bottom: 10px; }
+    #bigAnswer { font-size: 32px; font-weight: bold; color: #333; min-height: 40px; }
+    .stats-display {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .stat-label { font-weight: 600; color: #333; }
+    .stat-value { color: #667eea; font-weight: bold; }
+    .degree-stats {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 11px;
+    }
+    .degree-stat-row {
+      display: grid;
+      grid-template-columns: 50px 1fr;
+      gap: 8px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+    .degree-name {
+      font-weight: bold;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 4px;
+      border-radius: 3px;
+    }
+    .degree-bar { background: #ddd; border-radius: 3px; height: 16px; position: relative; overflow: hidden; }
+    .degree-bar-fill {
+      background: #667eea;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: white;
+      font-weight: bold;
+    }
+    .slider-group { margin-bottom: 15px; }
+    .slider-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #ddd;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .checkbox-label { font-size: 12px; color: #333; cursor: pointer; }
+    .hint {
+      padding: 12px;
+      background: #f0f0f0;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .keyboard-hints {
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      font-size: 10px;
+      color: #666;
+      border: 1px solid #eee;
+    }
+    .shortcuts-group {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .shortcuts-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .shortcuts-title { font-weight: bold; color: #333; margin-bottom: 5px; font-size: 11px; }
+    .shortcut-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .shortcut-key {
+      background: #ddd;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-weight: bold;
+      font-size: 9px;
+    }
+    .shortcut-desc { text-align: right; font-size: 10px; }
+    .degree-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    @media (max-width: 480px) {
+      .degree-grid { grid-template-columns: repeat(3, 1fr); }
+      button { min-width: 50px; padding: 8px 8px; font-size: 11px; }
+      #bigAnswer { font-size: 24px; }
+      h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <h1>🎵 Ear Trainer</h1>
+
+    <div class="left-panel">
+      <button id="unlockBtn">הפעל אודיו</button>
+      <div class="badge" id="audioBadge">ממתין לטעינה...</div>
+      <div class="progress-text" id="audioProgress"></div>
+
+      <div class="section">
+        <div class="section-title">מצב אימון</div>
+        <div class="button-group">
+          <button id="modeThirdBtn" class="mode-btn active">תרווחים</button>
+          <button id="modeTriadsBtn" class="mode-btn">מעלות</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">הפעלה</div>
+        <div class="button-group">
+          <button id="playBtn">▶️ שחק</button>
+          <button id="replayBtn">🔁 חזור</button>
+          <button id="refC4Btn">🎹 נתן</button>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="arpeggioToggle">
+          <label for="arpeggioToggle" class="checkbox-label">ניימות</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="checkbox-group">
+          <input type="checkbox" id="playDegreesToggle">
+          <label for="playDegreesToggle" class="checkbox-label">מצב חקירה</label>
+        </div>
+      </div>
+
+      <div class="status-display">
+        <div id="status">מוכן</div>
+        <div id="bigAnswer"></div>
+      </div>
+
+      <div id="thirdModeButtons">
+        <div class="section">
+          <div class="section-title">תרווחים</div>
+          <div class="button-group">
+            <button id="majorBtn">מז'ור</button>
+            <button id="minorBtn">מינור</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="triadsModButtons" style="display: none;">
+        <div class="section">
+          <div class="section-title">מעלות</div>
+          <div class="degree-grid">
+            <button class="degree-btn" data-degree="0">I</button>
+            <button class="degree-btn" data-degree="1">ii</button>
+            <button class="degree-btn" data-degree="2">iii</button>
+            <button class="degree-btn" data-degree="3">IV</button>
+            <button class="degree-btn" data-degree="4">V</button>
+            <button class="degree-btn" data-degree="5">vi</button>
+            <button class="degree-btn" data-degree="6">vii°</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint" id="audioHint">האזן וענה</div>
+    </div>
+
+    <div class="right-panel">
+      <div class="section">
+        <div class="section-title">סטטיסטיקה</div>
+        <div class="stats-display">
+          <div class="stat-row">
+            <span class="stat-label">סה"כ שאלות:</span>
+            <span class="stat-value" id="statTotal">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">נכונות:</span>
+            <span class="stat-value" id="statAccuracy">0%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">סדרה נוכחית:</span>
+            <span class="stat-value" id="statStreak">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">סדרה מקס:</span>
+            <span class="stat-value" id="statBestStreak">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">זמן תגובה:</span>
+            <span class="stat-value" id="statAvgTime">-</span>
+          </div>
+
+          <div class="degree-stats" id="degreeStatsContainer" style="display: none;">
+            <div style="font-weight: bold; margin-bottom: 8px; font-size: 12px;">ביצוע לפי מעלה:</div>
+            <div id="degreeStatsContent"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">הגדרות</div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>הטיה פרוגרסיות</span>
+            <span id="biasValue">50%</span>
+          </div>
+          <input type="range" id="biasSlider" min="0" max="100" value="50">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>התאמה חולשות</span>
+            <span id="adaptiveValue">50%</span>
+          </div>
+          <input type="range" id="adaptiveSlider" min="0" max="100" value="50">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>תדר תחתון</span>
+            <span id="minNoteValue">60</span>
+          </div>
+          <input type="range" id="minNoteSlider" min="36" max="72" value="60">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>תדר עליון</span>
+            <span id="maxNoteValue">72</span>
+          </div>
+          <input type="range" id="maxNoteSlider" min="36" max="84" value="72">
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="whiteKeysOnly">
+          <label for="whiteKeysOnly" class="checkbox-label">תווים לבנים בלבד</label>
+        </div>
+
+        <button id="resetStatsBtn" style="background: #dc3545; color: white; width: 100%; margin-top: 10px;">אפס</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">קיצורי מקלדת</div>
+        <div class="keyboard-hints">
+          <div class="shortcuts-group">
+            <div class="shortcuts-title">הפעלה</div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">שחק</div>
+              <span class="shortcut-key">Space</span>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">חזור</div>
+              <span class="shortcut-key">R</span>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">נתן</div>
+              <span class="shortcut-key">C</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="shortcuts-title">תרווחים</div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">מז'ור</div>
+              <span class="shortcut-key">M</span>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">מינור</div>
+              <span class="shortcut-key">N</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="shortcuts-title">מעלות</div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">I ii iii IV</div>
+              <span class="shortcut-key">J K L ;</span>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">V vi vii°</div>
+              <span class="shortcut-key">U I O</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="shortcuts-title">מצבים</div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">חקירה</div>
+              <span class="shortcut-key">Q</span>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">ניימות</div>
+              <span class="shortcut-key">E</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+const SAMPLE_MAP = [
+  { midi: 48, file: "assets/piano/C3.mp3" },
+  { midi: 51, file: "assets/piano/Ds3.mp3" },
+  { midi: 54, file: "assets/piano/Fs3.mp3" },
+  { midi: 57, file: "assets/piano/A3.mp3" },
+  { midi: 60, file: "assets/piano/C4.mp3" },
+  { midi: 63, file: "assets/piano/Ds4.mp3" },
+  { midi: 66, file: "assets/piano/Fs4.mp3" },
+  { midi: 69, file: "assets/piano/A4.mp3" },
+  { midi: 72, file: "assets/piano/C5.mp3" },
+];
+
+const TRIADS = [
+  { degree: 0, intervals: [0, 4, 7], hebrew: "I" },
+  { degree: 1, intervals: [2, 5, 9], hebrew: "ii" },
+  { degree: 2, intervals: [4, 7, 11], hebrew: "iii" },
+  { degree: 3, intervals: [5, 9, 12], hebrew: "IV" },
+  { degree: 4, intervals: [7, 11, 14], hebrew: "V" },
+  { degree: 5, intervals: [9, 12, 16], hebrew: "vi" },
+  { degree: 6, intervals: [11, 14, 17], hebrew: "vii°" },
+];
+
+const COMMON_PROGRESSIONS = {
+  0: [0, 4, 3],
+  1: [1, 4, 5],
+  2: [2, 5, 6],
+  3: [3, 0, 4],
+  4: [4, 0, 1],
+  5: [5, 1, 2],
+  6: [6, 0, 2],
+};
+
 let audioCtx = null;
 let sampleBuffers = new Map();
 let sampleLoadPromise = null;
+let currentMode = "thirds";
+let currentQuestion = null;
+let isPlayDegreesMode = false;
+let isArpeggio = false;
+let questionStartTime = 0;
+
+let stats = { totalQuestions: 0, correctAnswers: 0, currentStreak: 0, bestStreak: 0, responseTimes: [], degreeStats: {} };
+for (let i = 0; i < 7; i++) stats.degreeStats[i] = { asked: 0, correct: 0 };
+
+let config = { biasStrength: 50, adaptiveStrength: 50, minNote: 60, maxNote: 72, whiteKeysOnly: false };
 
 const unlockBtn = document.getElementById("unlockBtn");
 const audioBadge = document.getElementById("audioBadge");
 const audioProgress = document.getElementById("audioProgress");
-const audioHint = document.getElementById("audioHint");
-
 const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
+const refC4Btn = document.getElementById("refC4Btn");
+const arpeggioToggle = document.getElementById("arpeggioToggle");
+const playDegreesToggle = document.getElementById("playDegreesToggle");
+const modeThirdBtn = document.getElementById("modeThirdBtn");
+const modeTriadsBtn = document.getElementById("modeTriadsBtn");
 const majorBtn = document.getElementById("majorBtn");
 const minorBtn = document.getElementById("minorBtn");
-const refC4Btn = document.getElementById("refC4Btn");
-
+const degreeButtons = Array.from(document.querySelectorAll(".degree-btn"));
 const statusEl = document.getElementById("status");
 const bigAnswerEl = document.getElementById("bigAnswer");
-
-let currentQuestion = null;
-
-const SAMPLE_MAP = [
-  { midi: 48, file: "assets/piano/C3.mp3"  },
-  { midi: 51, file: "assets/piano/Ds3.mp3" },
-  { midi: 54, file: "assets/piano/Fs3.mp3" },
-  { midi: 57, file: "assets/piano/A3.mp3"  },
-  { midi: 60, file: "assets/piano/C4.mp3"  },
-  { midi: 63, file: "assets/piano/Ds4.mp3" },
-  { midi: 66, file: "assets/piano/Fs4.mp3" },
-  { midi: 69, file: "assets/piano/A4.mp3"  },
-  { midi: 72, file: "assets/piano/C5.mp3"  },
-];
+const thirdModeButtons = document.getElementById("thirdModeButtons");
+const triadsModButtons = document.getElementById("triadsModButtons");
+const statTotal = document.getElementById("statTotal");
+const statAccuracy = document.getElementById("statAccuracy");
+const statStreak = document.getElementById("statStreak");
+const statBestStreak = document.getElementById("statBestStreak");
+const statAvgTime = document.getElementById("statAvgTime");
+const degreeStatsContainer = document.getElementById("degreeStatsContainer");
+const degreeStatsContent = document.getElementById("degreeStatsContent");
+const biasSlider = document.getElementById("biasSlider");
+const biasValue = document.getElementById("biasValue");
+const adaptiveSlider = document.getElementById("adaptiveSlider");
+const adaptiveValue = document.getElementById("adaptiveValue");
+const minNoteSlider = document.getElementById("minNoteSlider");
+const minNoteValue = document.getElementById("minNoteValue");
+const maxNoteSlider = document.getElementById("maxNoteSlider");
+const maxNoteValue = document.getElementById("maxNoteValue");
+const whiteKeysOnly = document.getElementById("whiteKeysOnly");
+const resetStatsBtn = document.getElementById("resetStatsBtn");
 
 function getCtx() {
   if (!audioCtx) {
@@ -45,82 +527,50 @@ function assetUrl(relPath) {
 
 async function fetchDecode(file) {
   const ctx = getCtx();
-
   const res = await fetch(assetUrl(file));
-
-  if (!res.ok) {
-    throw new Error("Failed loading " + file);
-  }
-
-  const arr = await res.arrayBuffer();
-
-  return await ctx.decodeAudioData(arr);
+  if (!res.ok) throw new Error("Failed loading " + file);
+  return await ctx.decodeAudioData(await res.arrayBuffer());
 }
 
 async function loadAllSamples() {
   let loaded = 0;
-
   audioProgress.textContent = "דגימות: 0/" + SAMPLE_MAP.length;
-
   for (const s of SAMPLE_MAP) {
     try {
       const buf = await fetchDecode(s.file);
-
       sampleBuffers.set(s.midi, buf);
-
       loaded++;
-
-      audioProgress.textContent =
-        "דגימות: " + loaded + "/" + SAMPLE_MAP.length;
-
+      audioProgress.textContent = "דגימות: " + loaded + "/" + SAMPLE_MAP.length;
     } catch (err) {
       console.error(err);
     }
   }
-
   if (loaded === 0) {
     audioBadge.textContent = "טעינה נכשלה";
     return;
   }
-
   audioBadge.textContent = "סאונד הופעל";
   audioBadge.classList.remove("bad");
   audioBadge.classList.add("ok");
-
   statusEl.textContent = "מוכן.";
 }
 
 async function ensureAudioReady() {
   const ctx = getCtx();
-
-  if (ctx.state === "suspended") {
-    await ctx.resume();
-  }
-
-  if (!sampleLoadPromise) {
-    sampleLoadPromise = loadAllSamples();
-  }
-
+  if (ctx.state === "suspended") await ctx.resume();
+  if (!sampleLoadPromise) sampleLoadPromise = loadAllSamples();
   await sampleLoadPromise;
-
   return ctx;
 }
 
 function nearestSampleMidi(targetMidi) {
   const mids = Array.from(sampleBuffers.keys());
-
   let best = mids[0];
   let bestDist = Math.abs(targetMidi - best);
-
   for (const m of mids) {
     const d = Math.abs(targetMidi - m);
-
-    if (d < bestDist) {
-      bestDist = d;
-      best = m;
-    }
+    if (d < bestDist) { bestDist = d; best = m; }
   }
-
   return best;
 }
 
@@ -130,138 +580,302 @@ function rateForMidi(targetMidi, baseMidi) {
 
 function playBuffer(ctx, buf, rate, when, dur) {
   const src = ctx.createBufferSource();
-
   src.buffer = buf;
   src.playbackRate.value = rate;
-
   const gain = ctx.createGain();
-
   gain.gain.setValueAtTime(0.0001, when);
   gain.gain.linearRampToValueAtTime(0.9, when + 0.01);
   gain.gain.linearRampToValueAtTime(0.0001, when + dur);
-
   src.connect(gain);
   gain.connect(ctx.destination);
-
   src.start(when);
   src.stop(when + dur + 0.1);
 }
 
 async function playMidi(midi) {
   const ctx = await ensureAudioReady();
-
   const base = nearestSampleMidi(midi);
-
   const buf = sampleBuffers.get(base);
-
   const rate = rateForMidi(midi, base);
-
   playBuffer(ctx, buf, rate, ctx.currentTime + 0.02, 1);
 }
 
-async function playChord(midis) {
+async function playChord(midis, arpeggio = false) {
   const ctx = await ensureAudioReady();
-
   const now = ctx.currentTime + 0.02;
-
-  for (const midi of midis) {
-    const base = nearestSampleMidi(midi);
-
-    const buf = sampleBuffers.get(base);
-
-    const rate = rateForMidi(midi, base);
-
-    playBuffer(ctx, buf, rate, now, 1);
+  if (arpeggio) {
+    for (let i = 0; i < midis.length; i++) {
+      const midi = midis[i];
+      const base = nearestSampleMidi(midi);
+      const buf = sampleBuffers.get(base);
+      const rate = rateForMidi(midi, base);
+      const noteTime = now + i * 0.15;
+      playBuffer(ctx, buf, rate, noteTime, 1);
+    }
+  } else {
+    for (const midi of midis) {
+      const base = nearestSampleMidi(midi);
+      const buf = sampleBuffers.get(base);
+      const rate = rateForMidi(midi, base);
+      playBuffer(ctx, buf, rate, now, 1);
+    }
   }
 }
 
-function randomQuestion() {
-  const root = 60 + Math.floor(Math.random() * 12);
+function getValidRoot() {
+  const minNote = parseInt(minNoteSlider.value);
+  const maxNote = parseInt(maxNoteSlider.value);
+  const whiteKeys = [0, 2, 4, 5, 7, 9, 11];
+  const allKeys = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const validOffsets = whiteKeysOnly.checked ? whiteKeys : allKeys;
+  let validRoots = [];
+  for (let note = minNote; note <= maxNote; note += 12) {
+    for (const offset of validOffsets) {
+      const root = note + offset;
+      if (root >= minNote && root <= maxNote) validRoots.push(root);
+    }
+  }
+  return validRoots.length === 0 ? 60 : validRoots[Math.floor(Math.random() * validRoots.length)];
+}
 
+function selectNextDegree(lastDegree = null) {
+  const biasStrength = parseInt(biasSlider.value);
+  const adaptiveStrength = parseInt(adaptiveSlider.value);
+  let candidates = [];
+  if (lastDegree !== null && biasStrength > 20) {
+    if (Math.random() < biasStrength / 100) {
+      candidates = COMMON_PROGRESSIONS[lastDegree] || [0, 1, 2, 3, 4, 5, 6];
+    }
+  }
+  if (adaptiveStrength > 20 && Math.random() < adaptiveStrength / 100) {
+    const weakDegrees = Object.keys(stats.degreeStats)
+      .map(d => parseInt(d))
+      .sort((a, b) => {
+        const accA = stats.degreeStats[a].asked > 0 ? stats.degreeStats[a].correct / stats.degreeStats[a].asked : 0;
+        const accB = stats.degreeStats[b].asked > 0 ? stats.degreeStats[b].correct / stats.degreeStats[b].asked : 0;
+        return accA - accB;
+      });
+    candidates = weakDegrees.slice(0, Math.max(1, Math.floor(7 * 0.3)));
+  }
+  if (candidates.length === 0) candidates = [0, 1, 2, 3, 4, 5, 6];
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function randomThirdQuestion() {
+  const root = getValidRoot();
   const isMajor = Math.random() < 0.5;
-
-  const notes = isMajor
-    ? [root, root + 4]
-    : [root, root + 3];
-
-  currentQuestion = {
-    quality: isMajor ? "major" : "minor",
-    notes
-  };
-
-  playChord(notes);
-
+  const notes = isMajor ? [root, root + 4] : [root, root + 3];
+  currentQuestion = { type: "third", quality: isMajor ? "major" : "minor", notes, root };
+  playChord(notes, isArpeggio);
   statusEl.textContent = "האזן וענה";
   bigAnswerEl.textContent = "";
+  questionStartTime = Date.now();
 }
 
-function answer(q) {
-  if (!currentQuestion) return;
+function randomTriadQuestion() {
+  const root = getValidRoot();
+  const degree = selectNextDegree(currentQuestion?.degree);
+  const triad = TRIADS[degree];
+  const notes = triad.intervals.map(i => root + i);
+  currentQuestion = { type: "triad", degree, notes, root, triadName: triad.hebrew };
+  playChord(notes, isArpeggio);
+  statusEl.textContent = "האזן וענה";
+  bigAnswerEl.textContent = "";
+  questionStartTime = Date.now();
+}
 
-  const ok = currentQuestion.quality === q;
+function answerThird(quality) {
+  if (!currentQuestion || currentQuestion.type !== "third") return;
+  const isCorrect = currentQuestion.quality === quality;
+  recordAnswer(isCorrect);
+  statusEl.textContent = isCorrect ? "✅ נכון" : "❌ לא נכון";
+  bigAnswerEl.textContent = currentQuestion.quality === "major" ? "מז'ור" : "מינור";
+}
 
-  if (ok) {
-    statusEl.textContent = "✅ נכון";
+function answerDegree(degree) {
+  if (!currentQuestion || currentQuestion.type !== "triad") return;
+  const isCorrect = currentQuestion.degree === degree;
+  recordAnswer(isCorrect);
+  statusEl.textContent = isCorrect ? "✅ נכון" : "❌ לא נכון";
+  bigAnswerEl.textContent = TRIADS[currentQuestion.degree].hebrew;
+  stats.degreeStats[degree].asked++;
+  if (isCorrect) stats.degreeStats[degree].correct++;
+}
+
+function playDegree(degree) {
+  const root = getValidRoot();
+  const triad = TRIADS[degree];
+  const notes = triad.intervals.map(i => root + i);
+  playChord(notes, isArpeggio);
+}
+
+function recordAnswer(isCorrect) {
+  const responseTime = Date.now() - questionStartTime;
+  stats.totalQuestions++;
+  if (isCorrect) {
+    stats.correctAnswers++;
+    stats.currentStreak++;
+    stats.bestStreak = Math.max(stats.bestStreak, stats.currentStreak);
   } else {
-    statusEl.textContent = "❌ לא נכון";
+    stats.currentStreak = 0;
   }
-
-  bigAnswerEl.textContent =
-    currentQuestion.quality === "major"
-      ? "מז'ור"
-      : "מינור";
+  stats.responseTimes.push(responseTime);
+  if (stats.responseTimes.length > 100) stats.responseTimes.shift();
+  updateStatsUI();
+  saveStats();
 }
 
-unlockBtn.addEventListener("click", async () => {
-  await ensureAudioReady();
+function updateStatsUI() {
+  statTotal.textContent = stats.totalQuestions;
+  const accuracy = stats.totalQuestions > 0 ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) : 0;
+  statAccuracy.textContent = accuracy + "%";
+  statStreak.textContent = stats.currentStreak;
+  statBestStreak.textContent = stats.bestStreak;
+  if (stats.responseTimes.length > 0) {
+    const avgTime = stats.responseTimes.reduce((a, b) => a + b, 0) / stats.responseTimes.length;
+    statAvgTime.textContent = Math.round(avgTime) + "ms";
+  }
+  if (currentMode === "triads") {
+    degreeStatsContainer.style.display = "block";
+    degreeStatsContent.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const stat = stats.degreeStats[i];
+      const acc = stat.asked > 0 ? Math.round((stat.correct / stat.asked) * 100) : 0;
+      const row = document.createElement("div");
+      row.className = "degree-stat-row";
+      row.innerHTML = `<div class="degree-name">${TRIADS[i].hebrew}</div><div class="degree-bar"><div class="degree-bar-fill" style="width: ${acc}%">${stat.asked > 0 ? acc + "%" : "-"}</div></div>`;
+      degreeStatsContent.appendChild(row);
+    }
+  } else {
+    degreeStatsContainer.style.display = "none";
+  }
+}
+
+function saveStats() {
+  localStorage.setItem("earTrainerStats", JSON.stringify(stats));
+  localStorage.setItem("earTrainerConfig", JSON.stringify(config));
+}
+
+function loadStats() {
+  const saved = localStorage.getItem("earTrainerStats");
+  if (saved) stats = JSON.parse(saved);
+  const configSaved = localStorage.getItem("earTrainerConfig");
+  if (configSaved) {
+    config = JSON.parse(configSaved);
+    biasSlider.value = config.biasStrength;
+    biasValue.textContent = config.biasStrength + "%";
+    adaptiveSlider.value = config.adaptiveStrength;
+    adaptiveValue.textContent = config.adaptiveStrength + "%";
+    minNoteSlider.value = config.minNote;
+    minNoteValue.textContent = config.minNote;
+    maxNoteSlider.value = config.maxNote;
+    maxNoteValue.textContent = config.maxNote;
+    whiteKeysOnly.checked = config.whiteKeysOnly;
+  }
+  updateStatsUI();
+}
+
+unlockBtn.addEventListener("click", async () => await ensureAudioReady());
+
+modeThirdBtn.addEventListener("click", () => {
+  currentMode = "thirds";
+  modeThirdBtn.classList.add("active");
+  modeTriadsBtn.classList.remove("active");
+  thirdModeButtons.style.display = "block";
+  triadsModButtons.style.display = "none";
+});
+
+modeTriadsBtn.addEventListener("click", () => {
+  currentMode = "triads";
+  modeTriadsBtn.classList.add("active");
+  modeThirdBtn.classList.remove("active");
+  thirdModeButtons.style.display = "none";
+  triadsModButtons.style.display = "block";
 });
 
 playBtn.addEventListener("click", () => {
-  randomQuestion();
+  if (currentMode === "thirds") randomThirdQuestion();
+  else randomTriadQuestion();
 });
 
 replayBtn.addEventListener("click", () => {
-  if (currentQuestion) {
-    playChord(currentQuestion.notes);
-  }
-});
-
-majorBtn.addEventListener("click", () => {
-  answer("major");
-});
-
-minorBtn.addEventListener("click", () => {
-  answer("minor");
+  if (currentQuestion) playChord(currentQuestion.notes, isArpeggio);
 });
 
 refC4Btn.addEventListener("click", () => {
-  playMidi(60);
+  if (currentMode === "triads") playDegree(0);
+  else playMidi(60);
 });
 
-window.addEventListener("keydown", e => {
-  if (e.code === "Space") {
-    e.preventDefault();
-    randomQuestion();
-  }
+arpeggioToggle.addEventListener("change", () => { isArpeggio = arpeggioToggle.checked; });
+playDegreesToggle.addEventListener("change", () => { isPlayDegreesMode = playDegreesToggle.checked; });
+majorBtn.addEventListener("click", () => answerThird("major"));
+minorBtn.addEventListener("click", () => answerThird("minor"));
 
-  if (e.code === "KeyR") {
-    e.preventDefault();
+degreeButtons.forEach((btn, idx) => {
+  btn.addEventListener("click", () => {
+    if (isPlayDegreesMode) playDegree(idx);
+    else answerDegree(idx);
+  });
+});
 
-    if (currentQuestion) {
-      playChord(currentQuestion.notes);
-    }
-  }
+biasSlider.addEventListener("input", (e) => {
+  config.biasStrength = parseInt(e.target.value);
+  biasValue.textContent = config.biasStrength + "%";
+  saveStats();
+});
 
-  if (e.code === "KeyM") {
-    answer("major");
-  }
+adaptiveSlider.addEventListener("input", (e) => {
+  config.adaptiveStrength = parseInt(e.target.value);
+  adaptiveValue.textContent = config.adaptiveStrength + "%";
+  saveStats();
+});
 
-  if (e.code === "KeyN") {
-    answer("minor");
-  }
+minNoteSlider.addEventListener("input", (e) => {
+  config.minNote = parseInt(e.target.value);
+  minNoteValue.textContent = config.minNote;
+  saveStats();
+});
 
-  if (e.code === "KeyC") {
-    playMidi(60);
+maxNoteSlider.addEventListener("input", (e) => {
+  config.maxNote = parseInt(e.target.value);
+  maxNoteValue.textContent = config.maxNote;
+  saveStats();
+});
+
+whiteKeysOnly.addEventListener("change", () => {
+  config.whiteKeysOnly = whiteKeysOnly.checked;
+  saveStats();
+});
+
+resetStatsBtn.addEventListener("click", () => {
+  if (confirm("אפס סטטיסטיקה?")) {
+    stats = { totalQuestions: 0, correctAnswers: 0, currentStreak: 0, bestStreak: 0, responseTimes: [], degreeStats: {} };
+    for (let i = 0; i < 7; i++) stats.degreeStats[i] = { asked: 0, correct: 0 };
+    updateStatsUI();
+    saveStats();
   }
 });
-</script>
+
+window.addEventListener("keydown", (e) => {
+  const code = e.code;
+  const key = e.key.toUpperCase();
+  if (code === "Space") { e.preventDefault(); playBtn.click(); }
+  else if (key === "R") { e.preventDefault(); replayBtn.click(); }
+  else if (key === "C") { e.preventDefault(); refC4Btn.click(); }
+  else if (key === "E") { e.preventDefault(); arpeggioToggle.click(); }
+  else if (key === "Q") { e.preventDefault(); playDegreesToggle.click(); }
+  else if (currentMode === "thirds") {
+    if (key === "M") { e.preventDefault(); majorBtn.click(); }
+    else if (key === "N") { e.preventDefault(); minorBtn.click(); }
+  } else if (currentMode === "triads") {
+    const degreeMap = { J: 0, K: 1, L: 2, ";": 3, U: 4, I: 5, O: 6 };
+    if (degreeMap[key] !== undefined) { e.preventDefault(); degreeButtons[degreeMap[key]].click(); }
+  }
+});
+
+loadStats();
+updateStatsUI();
+  </script>
+</body>
+</html>
