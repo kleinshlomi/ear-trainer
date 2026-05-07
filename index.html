@@ -625,14 +625,15 @@ async function playChord(midis, arpeggio = false) {
 function getValidRoot() {
   const minNote = parseInt(minNoteSlider.value);
   const maxNote = parseInt(maxNoteSlider.value);
+  const sampleMidis = SAMPLE_MAP.map(s => s.midi);
   const whiteKeys = [0, 2, 4, 5, 7, 9, 11];
   const allKeys = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   const validOffsets = whiteKeysOnly.checked ? whiteKeys : allKeys;
   let validRoots = [];
-  for (let note = minNote; note <= maxNote; note += 12) {
-    for (const offset of validOffsets) {
-      const root = note + offset;
-      if (root >= minNote && root <= maxNote) validRoots.push(root);
+  for (const midi of sampleMidis) {
+    if (midi >= minNote && midi <= maxNote) {
+      const offset = midi % 12;
+      if (validOffsets.includes(offset)) validRoots.push(midi);
     }
   }
   return validRoots.length === 0 ? 60 : validRoots[Math.floor(Math.random() * validRoots.length)];
