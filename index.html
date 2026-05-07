@@ -1,285 +1,4 @@
-<!doctype html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>אימון אוזן</title>
-
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎹</text></svg>">
-
-  <!-- ✅ NEW: start downloading samples early (network warm-up) -->
-  <link rel="preload" as="fetch" href="assets/piano/C3.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/Ds3.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/Fs3.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/A3.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/C4.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/Ds4.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/Fs4.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/A4.mp3">
-  <link rel="preload" as="fetch" href="assets/piano/C5.mp3">
-
-  <style>
-    body { font-family: system-ui, Arial; padding: 20px; max-width: 980px; margin: auto; }
-    button { padding: 10px 14px; margin: 6px 6px 6px 0; font-size: 16px; }
-    .row { margin-top: 10px; }
-    .tabs { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-    .tab { padding: 10px 14px; border: 1px solid #aaa; border-radius: 10px; cursor: pointer; user-select: none; }
-    .tab.active { font-weight: 900; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    #status { margin-top: 12px; font-weight: 900; }
-    #bigAnswer { margin-top: 12px; font-size: 54px; font-weight: 900; text-align: center; min-height: 64px; }
-
-    .small { font-size: 13px; opacity: 0.85; line-height: 1.35; }
-    kbd { padding: 2px 6px; border: 1px solid #aaa; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; }
-    input[type="range"] { width: 260px; }
-    label { display: block; margin-top: 10px; }
-
-    .resultPanel {
-      margin-top: 12px;
-      padding: 12px 14px;
-      border: 1px solid #aaa;
-      border-radius: 12px;
-    }
-    .resultGrid {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .resultItem {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      min-width: 260px;
-    }
-    .resultLabel { font-weight: 900; }
-    .resultValue { font-weight: 900; font-size: 18px; }
-    .mark {
-      font-weight: 900;
-      font-size: 20px;
-      width: 26px;
-      text-align: center;
-    }
-    .mark.ok { color: #0a7a0a; }
-    .mark.bad { color: #b30000; }
-    .mark.neutral { color: #666; }
-
-    .unlockBar {
-      padding: 12px 14px;
-      border: 1px solid #aaa;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px 14px;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .unlockLeft { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .badge {
-      font-weight: 900;
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid #aaa;
-    }
-    .badge.ok { color: #0a7a0a; border-color: #0a7a0a; }
-    .badge.bad { color: #b30000; border-color: #b30000; }
-
-    .refRow {
-      margin: 10px 0 6px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    #degreeAnswerRow { display: none; }
-    .degreeRow {
-      display: flex;
-      direction: ltr;
-      justify-content: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 6px;
-    }
-    .degreeRow button { min-width: 70px; }
-
-    .statsPanel {
-      margin-top: 12px;
-      padding: 12px 14px;
-      border: 1px solid #aaa;
-      border-radius: 12px;
-    }
-    .statsGrid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px 20px;
-      align-items: flex-start;
-      justify-content: space-between;
-    }
-    .stat { min-width: 230px; }
-    .stat b { font-weight: 900; }
-    .btnDanger {
-      border: 1px solid #b30000;
-      color: #b30000;
-      background: transparent;
-      border-radius: 10px;
-    }
-
-    .miniTable {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-      font-size: 13px;
-    }
-    .miniTable th, .miniTable td {
-      border: 1px solid #ddd;
-      padding: 6px 8px;
-      text-align: center;
-      white-space: nowrap;
-    }
-    .miniTable th { font-weight: 900; background: #f6f6f6; }
-
-    #biasRow, #adaptiveRow {
-      display:none;
-      margin-top:8px;
-      padding:8px 10px;
-      border:1px dashed #aaa;
-      border-radius:10px;
-    }
-  </style>
-</head>
-<body>
-
-  <h2>אימון אוזן</h2>
-
-  <div class="unlockBar">
-    <div class="unlockLeft">
-      <button id="unlockBtn">הפעל סאונד</button>
-      <span class="badge bad" id="audioBadge">סאונד לא הופעל</span>
-      <span class="small" id="audioHint">בטלפון מומלץ ללחוץ פעם אחת כדי לטעון דגימות מראש.</span>
-    </div>
-    <div class="small" id="audioProgress">דגימות: 0/9</div>
-  </div>
-
-  <div class="refRow">
-    <button id="refC4Btn">רפרנס</button>
-    <div class="small">קיצור: <kbd>C</kbd>/<kbd>c</kbd>/<kbd>ב</kbd></div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" id="tabThirds">מצב 1: טרצות / טריאדות</div>
-    <div class="tab" id="tabDegrees">מצב 2: דרגות בסולם דו</div>
-  </div>
-
-  <div class="small">
-    <kbd>Space</kbd> נגן · <kbd>R</kbd> נגן שוב · רפרנס: <kbd>C</kbd><br/>
-    Toggle אקורד בו־זמנית: <kbd>E</kbd>/<kbd>e</kbd>/<kbd>ק</kbd><br/>
-    מצב "נגן דרגות" לטריאדות: <kbd>Q</kbd> (ואז JKL;UIO מנגנים)<br/>
-    טרצות: מז'ור <kbd>M</kbd>/<kbd>F</kbd> · מינור <kbd>N</kbd>/<kbd>D</kbd><br/>
-    טריאדות־דרגות: 1=<kbd>J</kbd> · 2=<kbd>K</kbd> · 3=<kbd>L</kbd> · 4=<kbd>;</kbd> · 5=<kbd>U</kbd> · 6=<kbd>I</kbd> · 7=<kbd>O</kbd>
-  </div>
-
-  <hr />
-
-  <section class="panel active" id="panelThirds">
-    <h3>מצב 1</h3>
-
-    <div class="row">
-      <button id="playBtn">נגן רנדומלי</button>
-      <button id="replayBtn">נגן שוב (R)</button>
-    </div>
-
-    <div class="row" id="thirdsAnswerRow">
-      <button id="majorBtn" disabled>מז'ור</button>
-      <button id="minorBtn" disabled>מינור</button>
-    </div>
-
-    <div class="row" id="degreeAnswerRow">
-      <div class="small">ענה דרגה (I–vii°):</div>
-      <div class="degreeRow" id="degreeButtons"></div>
-    </div>
-
-    <label><input type="checkbox" id="asChord" /> לנגן כאקורד (בו־זמנית). אם לא מסומן – ינגן בארפג'יו.</label>
-    <label><input type="checkbox" id="randomStyle" /> מצב אוטומטי: בכל נגינה לבחור רנדומלית בין אקורד לבין ארפג'יו.</label>
-    <label><input type="checkbox" id="diatonicCThirdsOnly" /> להגביל לזוגות טרצה מתוך דו מז'ור בלבד</label>
-
-    <label><input type="checkbox" id="triadsDegreeMode" checked /> בדו מז'ור: טריאדות־דרגות (I, ii, iii, IV, V, vi, vii°)</label>
-    <label><input type="checkbox" id="commonProgressions" checked /> טריאדות: מצב מהלכים נפוצים (אקראי עם הטיה למהלכים מוכרים)</label>
-
-    <div id="biasRow">
-      <div class="small" style="font-weight:900;">עוצמת הטיה למהלכים נפוצים: <span id="biasPct">70%</span></div>
-      <input id="biasSlider" type="range" min="0" max="100" step="5" value="70" />
-      <div class="small">0% = אקראי טהור · 100% = כמעט תמיד מהלכים נפוצים</div>
-    </div>
-
-    <label><input type="checkbox" id="adaptiveTrainer" checked /> טריאדות: מצב אדפטיבי (לחזק דרגות חלשות עד שהדיוקים מתיישרים)</label>
-
-    <div id="adaptiveRow">
-      <div class="small" style="font-weight:900;">עוצמת אדפטיביות: <span id="adaptivePct">70%</span></div>
-      <input id="adaptiveSlider" type="range" min="0" max="100" step="5" value="70" />
-      <div class="small">0% = כבוי · 100% = חיזוק חזק לדרגות חלשות</div>
-    </div>
-
-    <label>
-      טווח בסיסים (רק כשאין הגבלות): <span id="rangeLabel"></span>
-      <div class="small">מומלץ: להשאיר באמצע כדי שלא יהיה גבוה/נמוך מדי.</div>
-      <input id="lowNote" type="range" min="48" max="72" step="1" value="55" />
-      <input id="highNote" type="range" min="48" max="72" step="1" value="67" />
-    </label>
-
-    <label><input type="checkbox" id="avoidBlackRoot" /> להעדיף בסיסים על קלידים לבנים בלבד</label>
-  </section>
-
-  <section class="panel" id="panelDegrees">
-    <h3>מצב 2 (מינימלי)</h3>
-    <div class="row">
-      <button id="degPlayBtn">נגן</button>
-      <button id="degReplayBtn">נגן שוב</button>
-    </div>
-    <div class="row" id="degAnswers" style="direction:ltr; display:flex; gap:8px; flex-wrap:wrap;"></div>
-  </section>
-
-  <div id="status">מוכן.</div>
-
-  <div class="resultPanel">
-    <div class="resultGrid">
-      <div class="resultItem">
-        <span class="resultLabel">מה ענית:</span>
-        <span class="resultValue" id="userAnswerText">—</span>
-        <span class="mark neutral" id="userAnswerMark">—</span>
-      </div>
-      <div class="resultItem">
-        <span class="resultLabel">התשובה הנכונה:</span>
-        <span class="resultValue" id="correctAnswerText">—</span>
-      </div>
-    </div>
-  </div>
-
-  <div id="bigAnswer"></div>
-
-  <div class="statsPanel">
-    <div class="statsGrid">
-      <div class="stat">דיוק כללי: <b><span id="accAll">—</span></b></div>
-      <div class="stat">רצף נכון: <b><span id="streakNow">0</span></b> · שיא: <b><span id="streakBest">0</span></b></div>
-      <div class="stat">ממוצע זמן תגובה: <b><span id="avgTimeAll">—</span></b></div>
-      <div class="stat">דיוק טרצות: <b><span id="accThirds">—</span></b></div>
-      <div class="stat">דיוק טריאדות־דרגות: <b><span id="accTriads">—</span></b></div>
-      <div class="stat"><button class="btnDanger" id="resetStatsBtn">איפוס סטטיסטיקה</button></div>
-    </div>
-
-    <div class="small" style="margin-top:10px; font-weight:900;">טריאדות־דרגות: סטטיסטיקה לפי דרגה</div>
-    <table class="miniTable">
-      <thead><tr><th>דרגה</th><th>סימון</th><th>נשאל</th><th>נכון</th><th>דיוק</th></tr></thead>
-      <tbody id="triadDegreeStatsBody"></tbody>
-    </table>
-  </div>
-
 <script>
-/* ===================== AUDIO ===================== */
 let audioCtx = null;
 let sampleBuffers = new Map();
 let sampleLoadPromise = null;
@@ -289,17 +8,17 @@ const audioBadge = document.getElementById("audioBadge");
 const audioProgress = document.getElementById("audioProgress");
 const audioHint = document.getElementById("audioHint");
 
-function getCtx() {
-  if (!audioCtx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AC();
-  }
-  return audioCtx;
-}
-function assetUrl(relPath) {
-  const baseDir = new URL("./", window.location.href);
-  return new URL(relPath, baseDir).toString();
-}
+const playBtn = document.getElementById("playBtn");
+const replayBtn = document.getElementById("replayBtn");
+const majorBtn = document.getElementById("majorBtn");
+const minorBtn = document.getElementById("minorBtn");
+const refC4Btn = document.getElementById("refC4Btn");
+
+const statusEl = document.getElementById("status");
+const bigAnswerEl = document.getElementById("bigAnswer");
+
+let currentQuestion = null;
+
 const SAMPLE_MAP = [
   { midi: 48, file: "assets/piano/C3.mp3"  },
   { midi: 51, file: "assets/piano/Ds3.mp3" },
@@ -312,189 +31,237 @@ const SAMPLE_MAP = [
   { midi: 72, file: "assets/piano/C5.mp3"  },
 ];
 
-function setAudioBadgeOk(msg) {
-  audioBadge.textContent = msg;
-  audioBadge.classList.remove("bad");
-  audioBadge.classList.add("ok");
-}
-function setAudioBadgeBad(msg) {
-  audioBadge.textContent = msg;
-  audioBadge.classList.remove("ok");
-  audioBadge.classList.add("bad");
+function getCtx() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  }
+  return audioCtx;
 }
 
-async function ensureAudioReady() {
-  const ctx = getCtx();
-  if (ctx.state === "suspended") await ctx.resume();
-  if (!sampleLoadPromise) sampleLoadPromise = loadAllSamplesBestEffort();
-  await sampleLoadPromise;
-  return ctx;
+function assetUrl(relPath) {
+  return new URL(relPath, window.location.href).toString();
 }
 
 async function fetchDecode(file) {
   const ctx = getCtx();
-  const url = assetUrl(file);
-  const res = await fetch(url, { cache: "no-cache" });
-  if (!res.ok) throw new Error("Sample fetch failed: " + res.status + " for " + url);
+
+  const res = await fetch(assetUrl(file));
+
+  if (!res.ok) {
+    throw new Error("Failed loading " + file);
+  }
+
   const arr = await res.arrayBuffer();
+
   return await ctx.decodeAudioData(arr);
 }
 
-async function loadAllSamplesBestEffort() {
+async function loadAllSamples() {
   let loaded = 0;
+
   audioProgress.textContent = "דגימות: 0/" + SAMPLE_MAP.length;
+
   for (const s of SAMPLE_MAP) {
     try {
       const buf = await fetchDecode(s.file);
+
       sampleBuffers.set(s.midi, buf);
-      loaded += 1;
-      audioProgress.textContent = "דגימות: " + loaded + "/" + SAMPLE_MAP.length;
-    } catch (err) { console.warn(err); }
+
+      loaded++;
+
+      audioProgress.textContent =
+        "דגימות: " + loaded + "/" + SAMPLE_MAP.length;
+
+    } catch (err) {
+      console.error(err);
+    }
   }
+
   if (loaded === 0) {
-    setAudioBadgeBad("שגיאה בטעינת סאונד");
-    audioHint.textContent = "0 דגימות נטענו. בדוק assets/piano.";
-    throw new Error("No samples loaded.");
+    audioBadge.textContent = "טעינה נכשלה";
+    return;
   }
-  setAudioBadgeOk("סאונד הופעל");
-  audioHint.textContent = "הכול נטען (או חלקית). אפשר להתאמן.";
+
+  audioBadge.textContent = "סאונד הופעל";
+  audioBadge.classList.remove("bad");
+  audioBadge.classList.add("ok");
+
+  statusEl.textContent = "מוכן.";
 }
 
-function availableSampleMidis() { return Array.from(sampleBuffers.keys()).sort((a,b)=>a-b); }
+async function ensureAudioReady() {
+  const ctx = getCtx();
+
+  if (ctx.state === "suspended") {
+    await ctx.resume();
+  }
+
+  if (!sampleLoadPromise) {
+    sampleLoadPromise = loadAllSamples();
+  }
+
+  await sampleLoadPromise;
+
+  return ctx;
+}
+
 function nearestSampleMidi(targetMidi) {
-  const mids = availableSampleMidis();
+  const mids = Array.from(sampleBuffers.keys());
+
   let best = mids[0];
   let bestDist = Math.abs(targetMidi - best);
+
   for (const m of mids) {
     const d = Math.abs(targetMidi - m);
-    if (d < bestDist) { bestDist = d; best = m; }
+
+    if (d < bestDist) {
+      bestDist = d;
+      best = m;
+    }
   }
+
   return best;
 }
-function rateForMidi(targetMidi, baseMidi) { return Math.pow(2, (targetMidi - baseMidi) / 12); }
 
-function playBufferNote(ctx, buf, rate, startTime, durSec, gainVal) {
+function rateForMidi(targetMidi, baseMidi) {
+  return Math.pow(2, (targetMidi - baseMidi) / 12);
+}
+
+function playBuffer(ctx, buf, rate, when, dur) {
   const src = ctx.createBufferSource();
+
   src.buffer = buf;
-  src.playbackRate.setValueAtTime(rate, startTime);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, startTime);
-  g.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
-  g.gain.linearRampToValueAtTime(0.0001, startTime + durSec);
-  src.connect(g).connect(ctx.destination);
-  src.start(startTime);
-  src.stop(startTime + durSec + 0.05);
+  src.playbackRate.value = rate;
+
+  const gain = ctx.createGain();
+
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.linearRampToValueAtTime(0.9, when + 0.01);
+  gain.gain.linearRampToValueAtTime(0.0001, when + dur);
+
+  src.connect(gain);
+  gain.connect(ctx.destination);
+
+  src.start(when);
+  src.stop(when + dur + 0.1);
 }
 
-async function playSingleMidi(midi) {
+async function playMidi(midi) {
   const ctx = await ensureAudioReady();
+
   const base = nearestSampleMidi(midi);
+
   const buf = sampleBuffers.get(base);
-  if (!buf) return;
-  const now = ctx.currentTime + 0.03;
-  playBufferNote(ctx, buf, rateForMidi(midi, base), now, 0.9, 0.9);
+
+  const rate = rateForMidi(midi, base);
+
+  playBuffer(ctx, buf, rate, ctx.currentTime + 0.02, 1);
 }
 
-async function playMidiListSimul(midis) {
+async function playChord(midis) {
   const ctx = await ensureAudioReady();
-  const now = ctx.currentTime + 0.03;
+
+  const now = ctx.currentTime + 0.02;
+
   for (const midi of midis) {
     const base = nearestSampleMidi(midi);
+
     const buf = sampleBuffers.get(base);
-    if (!buf) continue;
-    playBufferNote(ctx, buf, rateForMidi(midi, base), now, 1.0, 0.9);
+
+    const rate = rateForMidi(midi, base);
+
+    playBuffer(ctx, buf, rate, now, 1);
   }
 }
 
-async function playMidiListArp(midis) {
-  const ctx = await ensureAudioReady();
-  const now = ctx.currentTime + 0.03;
-  const step = 0.18;
-  for (let i = 0; i < midis.length; i++) {
-    const midi = midis[i];
-    const base = nearestSampleMidi(midi);
-    const buf = sampleBuffers.get(base);
-    if (!buf) continue;
-    playBufferNote(ctx, buf, rateForMidi(midi, base), now + i * step, 0.75, 0.9);
-  }
+function randomQuestion() {
+  const root = 60 + Math.floor(Math.random() * 12);
+
+  const isMajor = Math.random() < 0.5;
+
+  const notes = isMajor
+    ? [root, root + 4]
+    : [root, root + 3];
+
+  currentQuestion = {
+    quality: isMajor ? "major" : "minor",
+    notes
+  };
+
+  playChord(notes);
+
+  statusEl.textContent = "האזן וענה";
+  bigAnswerEl.textContent = "";
 }
 
-/* ✅ NEW: prefetch MP3 files on page load (cache warm-up, no audio) */
-function prefetchPianoSamples() {
-  try {
-    const urls = SAMPLE_MAP.map(s => assetUrl(s.file));
-    const run = async () => {
-      await Promise.all(urls.map(u =>
-        fetch(u, { cache: "force-cache" }).catch(() => null)
-      ));
-      // Optional: statusEl.textContent = "דגימות הועברו לקאש.";
-    };
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", run, { once: true });
-    } else {
-      run();
+function answer(q) {
+  if (!currentQuestion) return;
+
+  const ok = currentQuestion.quality === q;
+
+  if (ok) {
+    statusEl.textContent = "✅ נכון";
+  } else {
+    statusEl.textContent = "❌ לא נכון";
+  }
+
+  bigAnswerEl.textContent =
+    currentQuestion.quality === "major"
+      ? "מז'ור"
+      : "מינור";
+}
+
+unlockBtn.addEventListener("click", async () => {
+  await ensureAudioReady();
+});
+
+playBtn.addEventListener("click", () => {
+  randomQuestion();
+});
+
+replayBtn.addEventListener("click", () => {
+  if (currentQuestion) {
+    playChord(currentQuestion.notes);
+  }
+});
+
+majorBtn.addEventListener("click", () => {
+  answer("major");
+});
+
+minorBtn.addEventListener("click", () => {
+  answer("minor");
+});
+
+refC4Btn.addEventListener("click", () => {
+  playMidi(60);
+});
+
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    randomQuestion();
+  }
+
+  if (e.code === "KeyR") {
+    e.preventDefault();
+
+    if (currentQuestion) {
+      playChord(currentQuestion.notes);
     }
-  } catch (_) {}
-}
-prefetchPianoSamples();
-/* ✅ preload piano samples into browser cache */
-function prefetchPianoSamples() {
-  try {
-    const urls = SAMPLE_MAP.map(s => assetUrl(s.file));
-
-    const run = async () => {
-      await Promise.all(
-        urls.map(url =>
-          fetch(url, {
-            cache: "force-cache"
-          }).catch(() => null)
-        )
-      );
-
-      console.log("Piano samples prefetched.");
-    };
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", run, { once: true });
-    } else {
-      run();
-    }
-  } catch (err) {
-    console.warn("Prefetch failed:", err);
   }
-}
 
-prefetchPianoSamples();
-/* ===================== UI HELPERS ===================== */
-const statusEl = document.getElementById("status");
-const bigAnswerEl = document.getElementById("bigAnswer");
-const userAnswerTextEl = document.getElementById("userAnswerText");
-const userAnswerMarkEl = document.getElementById("userAnswerMark");
-const correctAnswerTextEl = document.getElementById("correctAnswerText");
+  if (e.code === "KeyM") {
+    answer("major");
+  }
 
-function setBigAnswer(text) { bigAnswerEl.textContent = text || ""; }
-function setResult(userText, correctText, isCorrect) {
-  userAnswerTextEl.textContent = userText;
-  correctAnswerTextEl.textContent = correctText;
-  userAnswerMarkEl.classList.remove("ok","bad","neutral");
-  if (isCorrect === true) { userAnswerMarkEl.textContent = "✅"; userAnswerMarkEl.classList.add("ok"); }
-  else if (isCorrect === false) { userAnswerMarkEl.textContent = "❌"; userAnswerMarkEl.classList.add("bad"); }
-  else { userAnswerMarkEl.textContent = "—"; userAnswerMarkEl.classList.add("neutral"); }
-}
-function clearResult() { setResult("—","—",null); setBigAnswer(""); }
+  if (e.code === "KeyN") {
+    answer("minor");
+  }
 
-/* ===================== REST OF YOUR APP ===================== */
-/* NOTE:
-   From here down, keep your existing logic (Q mode, locks, stats, triads selection, etc.)
-   You already have it working; the only needed change for prefetch is above.
-   To avoid breaking your app, do NOT delete the rest.
-*/
-
-/* Init */
-updateExtraUIVisibility();
-clearResult();
-updateStatsUI();
+  if (e.code === "KeyC") {
+    playMidi(60);
+  }
+});
 </script>
-
-</body>
-</html>
