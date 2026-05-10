@@ -34,6 +34,7 @@
       .main-container { grid-template-columns: 1fr; max-height: none; }
     }
     .left-panel, .right-panel { display: flex; flex-direction: column; }
+    .left-panel { gap: 8px; }
     h1 { text-align: center; margin-bottom: 20px; color: #333; font-size: 24px; grid-column: 1 / -1; }
     .badge {
       display: inline-block;
@@ -79,7 +80,18 @@
     button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
     button:active { transform: translateY(0); }
     button.active { outline: 3px solid #667eea; outline-offset: -3px; }
-    #unlockBtn { background: #6c757d; color: white; width: 100%; margin-bottom: 10px; min-height: 40px; }
+    #unlockBtn {
+      background: #6c757d;
+      color: white;
+      width: auto;
+      min-width: 96px;
+      min-height: 30px;
+      padding: 6px 10px;
+      font-size: 11px;
+      margin-bottom: 8px;
+      align-self: flex-start;
+      flex: 0 0 auto;
+    }
     #playBtn { background: #28a745; color: white; font-size: 14px; flex: 2; }
     #replayBtn { background: #17a2b8; color: white; flex: 1; }
     .mode-btn { background: #6c757d; color: white; }
@@ -99,21 +111,28 @@
     #bigAnswer { font-size: 32px; font-weight: bold; color: #333; min-height: 40px; }
     .stats-display {
       background: #f0f0f0;
-      padding: 15px;
+      padding: 10px;
       border-radius: 8px;
-      font-size: 12px;
-      line-height: 1.6;
+      font-size: 11px;
+      line-height: 1.35;
     }
-    .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .compact-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+    }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
     .stat-label { font-weight: 600; color: #333; }
     .stat-value { color: #667eea; font-weight: bold; }
     .degree-stats {
       background: #fff;
       border: 1px solid #ddd;
-      padding: 10px;
+      padding: 8px;
       border-radius: 6px;
-      margin-top: 10px;
-      font-size: 11px;
+      margin-top: 8px;
+      font-size: 10px;
+      max-height: 180px;
+      overflow-y: auto;
     }
     .degree-stat-row {
       display: grid;
@@ -219,6 +238,20 @@
     }
     .shortcut-desc { text-align: right; font-size: 10px; }
     .degree-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+    .history-table-wrap { overflow-x: auto; border: 1px solid #eee; border-radius: 6px; }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      background: #fff;
+    }
+    .history-table th, .history-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f0f0f0;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .history-table th { background: #f8f9ff; color: #333; }
     @media (max-width: 480px) {
       .degree-grid { grid-template-columns: repeat(3, 1fr); }
       button { min-width: 50px; padding: 8px 8px; font-size: 11px; }
@@ -232,54 +265,66 @@
     <h1>🎵 Ear Trainer</h1>
 
     <div class="left-panel">
-      <button id="unlockBtn">הפעל אודיו</button>
+      <button id="unlockBtn">Enable Audio</button>
       <div class="badge" id="audioBadge">ממתין לטעינה...</div>
       <div class="progress-text" id="audioProgress"></div>
 
       <div class="section">
         <div class="section-title">מצב אימון</div>
         <div class="button-group">
-          <button id="modeThirdBtn" class="mode-btn active">תרווחים</button>
-          <button id="modeTriadsBtn" class="mode-btn">מעלות</button>
+          <button id="modeThirdBtn" class="mode-btn">Intervals</button>
+          <button id="modeTriadsBtn" class="mode-btn active">Scale Degrees</button>
         </div>
       </div>
 
       <div class="section">
         <div class="section-title">הפעלה</div>
         <div class="button-group">
-          <button id="playBtn">▶️ שחק</button>
-          <button id="replayBtn">🔁 חזור</button>
-          <button id="refC4Btn">🎹 נתן</button>
+          <button id="playBtn">▶️ New Question</button>
+          <button id="replayBtn">🔁 Replay</button>
+          <button id="refC4Btn">🎹 Degree I</button>
         </div>
         <div class="checkbox-group">
           <input type="checkbox" id="arpeggioToggle">
-          <label for="arpeggioToggle" class="checkbox-label">ניימות</label>
+          <label for="arpeggioToggle" class="checkbox-label">Arpeggio</label>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="inversionsToggle">
+          <label for="inversionsToggle" class="checkbox-label">Random Inversions</label>
         </div>
       </div>
 
       <div class="section">
         <div class="checkbox-group">
           <input type="checkbox" id="playDegreesToggle">
-          <label for="playDegreesToggle" class="checkbox-label">מצב חקירה</label>
+          <label for="playDegreesToggle" class="checkbox-label">Explore Mode</label>
+        </div>
+        <div class="checkbox-group">
+          <label for="exploreSubMode" class="checkbox-label">Explore Submode</label>
+          <select id="exploreSubMode" style="flex: 1; max-width: 180px;">
+            <option value="triads">Degree Playback</option>
+            <option value="qualityPlay">Major/Minor Playback (M/N)</option>
+          </select>
         </div>
       </div>
 
       <div class="status-display">
         <div id="status">מוכן</div>
+        <div id="lastGuess" style="font-size: 12px; color: #666; min-height: 18px;"></div>
         <div id="bigAnswer"></div>
       </div>
 
-      <div id="thirdModeButtons">
+      <div id="thirdModeButtons" style="display: none;">
         <div class="section">
-          <div class="section-title">תרווחים</div>
+          <div class="section-title">מרווחים</div>
           <div class="button-group">
-            <button id="majorBtn">מז'ור</button>
-            <button id="minorBtn">מינור</button>
+            <button id="majorBtn">Major</button>
+            <button id="minorBtn">Minor</button>
           </div>
         </div>
       </div>
 
-      <div id="triadsModButtons" style="display: none;">
+      <div id="triadsModButtons">
         <div class="section">
           <div class="section-title">מעלות</div>
           <div class="degree-grid">
@@ -301,29 +346,31 @@
       <div class="section">
         <div class="section-title">סטטיסטיקה</div>
         <div class="stats-display">
-          <div class="stat-row">
-            <span class="stat-label">סה"כ שאלות:</span>
-            <span class="stat-value" id="statTotal">0</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">נכונות:</span>
-            <span class="stat-value" id="statAccuracy">0%</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">סדרה נוכחית:</span>
-            <span class="stat-value" id="statStreak">0</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">סדרה מקס:</span>
-            <span class="stat-value" id="statBestStreak">0</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">זמן תגובה:</span>
-            <span class="stat-value" id="statAvgTime">-</span>
+          <div class="compact-stats">
+            <div class="stat-row">
+              <span class="stat-label">סה"כ:</span>
+              <span class="stat-value" id="statTotal">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">נכונות:</span>
+              <span class="stat-value" id="statAccuracy">0%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">רצף:</span>
+              <span class="stat-value" id="statStreak">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">שיא:</span>
+              <span class="stat-value" id="statBestStreak">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">ממוצע:</span>
+              <span class="stat-value" id="statAvgTime">-</span>
+            </div>
           </div>
 
           <div class="degree-stats" id="degreeStatsContainer" style="display: none;">
-            <div style="font-weight: bold; margin-bottom: 8px; font-size: 12px;">ביצוע לפי מעלה:</div>
+            <div style="font-weight: bold; margin-bottom: 6px; font-size: 11px;">ביצוע לפי מעלה:</div>
             <div id="degreeStatsContent"></div>
           </div>
         </div>
@@ -334,7 +381,7 @@
 
         <div class="slider-group">
           <div class="slider-label">
-            <span>הטיה פרוגרסיות</span>
+            <span>סיכוי להמשך הרמוני (Progression Bias)</span>
             <span id="biasValue">50%</span>
           </div>
           <input type="range" id="biasSlider" min="0" max="100" value="50">
@@ -342,7 +389,7 @@
 
         <div class="slider-group">
           <div class="slider-label">
-            <span>התאמה חולשות</span>
+            <span>מיקוד בדרגות חלשות (Adaptive Practice)</span>
             <span id="adaptiveValue">50%</span>
           </div>
           <input type="range" id="adaptiveSlider" min="0" max="100" value="50">
@@ -350,18 +397,18 @@
 
         <div class="slider-group">
           <div class="slider-label">
-            <span>תדר תחתון</span>
-            <span id="minNoteValue">60</span>
+            <span>גבול עליון לגובה (Top Note Limit)</span>
+            <span id="maxNoteValue">72</span>
           </div>
-          <input type="range" id="minNoteSlider" min="36" max="72" value="60">
+          <input type="range" id="maxNoteSlider" min="36" max="84" value="72">
         </div>
 
         <div class="slider-group">
           <div class="slider-label">
-            <span>תדר עליון</span>
-            <span id="maxNoteValue">72</span>
+            <span>גבול תחתון לגובה (Bottom Note Limit)</span>
+            <span id="minNoteValue">60</span>
           </div>
-          <input type="range" id="maxNoteSlider" min="36" max="84" value="72">
+          <input type="range" id="minNoteSlider" min="36" max="72" value="60">
         </div>
 
         <div class="checkbox-group">
@@ -378,28 +425,28 @@
           <div class="shortcuts-group">
             <div class="shortcuts-title">הפעלה</div>
             <div class="shortcut-row">
-              <div class="shortcut-desc">שחק</div>
-              <span class="shortcut-key">Space</span>
+              <div class="shortcut-desc">שאלה חדשה</div>
+              <span class="shortcut-key">Enter</span>
             </div>
             <div class="shortcut-row">
-              <div class="shortcut-desc">חזור</div>
-              <span class="shortcut-key">R</span>
+              <div class="shortcut-desc">נגן שוב</div>
+              <span class="shortcut-key">Space / R / 0</span>
             </div>
             <div class="shortcut-row">
-              <div class="shortcut-desc">נתן</div>
-              <span class="shortcut-key">C</span>
+              <div class="shortcut-desc">דרגה I</div>
+              <span class="shortcut-key">C / c / ב / 1</span>
             </div>
           </div>
 
           <div class="shortcuts-group">
-            <div class="shortcuts-title">תרווחים</div>
+            <div class="shortcuts-title">מרווחים</div>
             <div class="shortcut-row">
               <div class="shortcut-desc">מז'ור</div>
-              <span class="shortcut-key">M</span>
+              <span class="shortcut-key">M / F</span>
             </div>
             <div class="shortcut-row">
               <div class="shortcut-desc">מינור</div>
-              <span class="shortcut-key">N</span>
+              <span class="shortcut-key">N / D</span>
             </div>
           </div>
 
@@ -418,14 +465,38 @@
           <div class="shortcuts-group">
             <div class="shortcuts-title">מצבים</div>
             <div class="shortcut-row">
-              <div class="shortcut-desc">חקירה</div>
+              <div class="shortcut-desc">מצב חקירה</div>
               <span class="shortcut-key">Q</span>
             </div>
             <div class="shortcut-row">
-              <div class="shortcut-desc">ניימות</div>
-              <span class="shortcut-key">E</span>
+              <div class="shortcut-desc">אקורד/ארפג’יו</div>
+              <span class="shortcut-key">E / e / ק</span>
+            </div>
+            <div class="shortcut-row">
+              <div class="shortcut-desc">תת-מצב M/N</div>
+              <span class="shortcut-key">במצב חקירה</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">היסטוריית דרגות רנדומליות</div>
+        <div class="history-table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>דרגה</th>
+                <th>שורש</th>
+                <th>היפוך</th>
+                <th>זמן</th>
+              </tr>
+            </thead>
+            <tbody id="triadHistoryBody">
+              <tr><td colspan="5">עדיין אין נתונים</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -466,17 +537,23 @@ const COMMON_PROGRESSIONS = {
 
 let audioCtx = null;
 let sampleBuffers = new Map();
+let htmlAudioSamples = new Map();
 let sampleLoadPromise = null;
-let currentMode = "thirds";
+let useSynthFallback = false;
+let useHtmlAudioFallback = false;
+let currentMode = "triads";
 let currentQuestion = null;
 let isPlayDegreesMode = false;
 let isArpeggio = false;
+let useRandomInversions = false;
+let exploreSubMode = "triads";
 let questionStartTime = 0;
+let triadHistory = [];
 
 let stats = { totalQuestions: 0, correctAnswers: 0, currentStreak: 0, bestStreak: 0, responseTimes: [], degreeStats: {} };
-for (let i = 0; i < 7; i++) stats.degreeStats[i] = { asked: 0, correct: 0 };
+for (let i = 0; i < 7; i++) stats.degreeStats[i] = { asked: 0, correct: 0, solvedQuestions: 0, attemptsToCorrectTotal: 0 };
 
-let config = { biasStrength: 50, adaptiveStrength: 50, minNote: 60, maxNote: 72, whiteKeysOnly: false };
+let config = { biasStrength: 50, adaptiveStrength: 50, minNote: 60, maxNote: 72, whiteKeysOnly: false, useRandomInversions: false, exploreSubMode: "triads" };
 
 const unlockBtn = document.getElementById("unlockBtn");
 const audioBadge = document.getElementById("audioBadge");
@@ -485,13 +562,16 @@ const playBtn = document.getElementById("playBtn");
 const replayBtn = document.getElementById("replayBtn");
 const refC4Btn = document.getElementById("refC4Btn");
 const arpeggioToggle = document.getElementById("arpeggioToggle");
+const inversionsToggle = document.getElementById("inversionsToggle");
 const playDegreesToggle = document.getElementById("playDegreesToggle");
+const exploreSubModeSelect = document.getElementById("exploreSubMode");
 const modeThirdBtn = document.getElementById("modeThirdBtn");
 const modeTriadsBtn = document.getElementById("modeTriadsBtn");
 const majorBtn = document.getElementById("majorBtn");
 const minorBtn = document.getElementById("minorBtn");
 const degreeButtons = Array.from(document.querySelectorAll(".degree-btn"));
 const statusEl = document.getElementById("status");
+const lastGuessEl = document.getElementById("lastGuess");
 const bigAnswerEl = document.getElementById("bigAnswer");
 const thirdModeButtons = document.getElementById("thirdModeButtons");
 const triadsModButtons = document.getElementById("triadsModButtons");
@@ -512,6 +592,7 @@ const maxNoteSlider = document.getElementById("maxNoteSlider");
 const maxNoteValue = document.getElementById("maxNoteValue");
 const whiteKeysOnly = document.getElementById("whiteKeysOnly");
 const resetStatsBtn = document.getElementById("resetStatsBtn");
+const triadHistoryBody = document.getElementById("triadHistoryBody");
 
 function getCtx() {
   if (!audioCtx) {
@@ -534,6 +615,7 @@ async function fetchDecode(file) {
 
 async function loadAllSamples() {
   let loaded = 0;
+  let htmlLoaded = 0;
   audioProgress.textContent = "דגימות: 0/" + SAMPLE_MAP.length;
   for (const s of SAMPLE_MAP) {
     try {
@@ -542,11 +624,34 @@ async function loadAllSamples() {
       loaded++;
       audioProgress.textContent = "דגימות: " + loaded + "/" + SAMPLE_MAP.length;
     } catch (err) {
+      // Fallback for browsers/codecs that fail decodeAudioData.
+      try {
+        const a = new Audio(assetUrl(s.file));
+        a.preload = "auto";
+        a.crossOrigin = "anonymous";
+        htmlAudioSamples.set(s.midi, a);
+        htmlLoaded++;
+      } catch (audioErr) {
+        console.error(audioErr);
+      }
       console.error(err);
     }
   }
-  if (loaded === 0) {
+  if (loaded === 0 && htmlLoaded === 0) {
     audioBadge.textContent = "טעינה נכשלה";
+    audioBadge.classList.remove("ok");
+    audioBadge.classList.add("bad");
+    statusEl.textContent = "טעינת דגימות נכשלה, עובר לסאונד חלופי.";
+    useSynthFallback = true;
+    return;
+  }
+  if (loaded === 0 && htmlLoaded > 0) {
+    useHtmlAudioFallback = true;
+    audioBadge.textContent = "סאונד הופעל";
+    audioBadge.classList.remove("bad");
+    audioBadge.classList.add("ok");
+    audioProgress.textContent = "דגימות HTML: " + htmlLoaded + "/" + SAMPLE_MAP.length;
+    statusEl.textContent = "מוכן (ניגון HTML).";
     return;
   }
   audioBadge.textContent = "סאונד הופעל";
@@ -556,11 +661,21 @@ async function loadAllSamples() {
 }
 
 async function ensureAudioReady() {
-  const ctx = getCtx();
-  if (ctx.state === "suspended") await ctx.resume();
-  if (!sampleLoadPromise) sampleLoadPromise = loadAllSamples();
-  await sampleLoadPromise;
-  return ctx;
+  try {
+    const ctx = getCtx();
+    if (ctx.state === "suspended") await ctx.resume();
+    if (!sampleLoadPromise) sampleLoadPromise = loadAllSamples();
+    await sampleLoadPromise;
+    return ctx;
+  } catch (err) {
+    console.error("Audio initialization failed:", err);
+    audioBadge.textContent = "שגיאת אודיו";
+    audioBadge.classList.remove("ok");
+    audioBadge.classList.add("bad");
+    statusEl.textContent = "שגיאת אודיו, עובר לסאונד חלופי.";
+    useSynthFallback = true;
+    return getCtx();
+  }
 }
 
 function nearestSampleMidi(targetMidi) {
@@ -592,8 +707,105 @@ function playBuffer(ctx, buf, rate, when, dur) {
   src.stop(when + dur + 0.1);
 }
 
+function playSynthTone(ctx, midi, when, dur = 1) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(freq, when);
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.linearRampToValueAtTime(0.2, when + 0.01);
+  gain.gain.linearRampToValueAtTime(0.0001, when + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(when);
+  osc.stop(when + dur + 0.05);
+}
+
+function playNoiseFeedback(isCorrect) {
+  const ctx = getCtx();
+  if (ctx.state === "suspended") return;
+
+  const when = ctx.currentTime + 0.005;
+
+  if (isCorrect) {
+    // Pleasant short "success ping": two quick sine tones.
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(0.18, when + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.2);
+    g.connect(ctx.destination);
+
+    const o1 = ctx.createOscillator();
+    o1.type = "sine";
+    o1.frequency.setValueAtTime(880, when);
+    o1.frequency.linearRampToValueAtTime(990, when + 0.12);
+    o1.connect(g);
+    o1.start(when);
+    o1.stop(when + 0.13);
+
+    const o2 = ctx.createOscillator();
+    o2.type = "sine";
+    o2.frequency.setValueAtTime(1320, when + 0.07);
+    o2.connect(g);
+    o2.start(when + 0.07);
+    o2.stop(when + 0.2);
+    return;
+  }
+
+  const duration = 0.28;
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 380;
+  filter.Q.value = 2.0;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, when);
+  gain.gain.linearRampToValueAtTime(0.28, when + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.05, when + 0.09);
+  gain.gain.linearRampToValueAtTime(0.24, when + 0.13);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  src.start(when);
+  src.stop(when + duration + 0.02);
+}
+
+function playHtmlAudioNote(midi, when, dur = 1) {
+  const base = nearestSampleMidi(midi);
+  const template = htmlAudioSamples.get(base);
+  if (!template) return;
+  const note = template.cloneNode();
+  note.currentTime = 0;
+  note.playbackRate = rateForMidi(midi, base);
+  note.volume = 0.9;
+  const delayMs = Math.max(0, (when - getCtx().currentTime) * 1000);
+  setTimeout(() => {
+    note.play().catch(() => {});
+    setTimeout(() => {
+      note.pause();
+      note.src = "";
+    }, Math.round((dur + 0.1) * 1000));
+  }, delayMs);
+}
+
 async function playMidi(midi) {
   const ctx = await ensureAudioReady();
+  if (useHtmlAudioFallback) {
+    playHtmlAudioNote(midi, ctx.currentTime + 0.02, 1);
+    return;
+  }
+  if (useSynthFallback || sampleBuffers.size === 0) {
+    playSynthTone(ctx, midi, ctx.currentTime + 0.02, 1);
+    return;
+  }
   const base = nearestSampleMidi(midi);
   const buf = sampleBuffers.get(base);
   const rate = rateForMidi(midi, base);
@@ -603,6 +815,22 @@ async function playMidi(midi) {
 async function playChord(midis, arpeggio = false) {
   const ctx = await ensureAudioReady();
   const now = ctx.currentTime + 0.02;
+  if (useHtmlAudioFallback) {
+    if (arpeggio) {
+      for (let i = 0; i < midis.length; i++) playHtmlAudioNote(midis[i], now + i * 0.15, 1);
+    } else {
+      for (const midi of midis) playHtmlAudioNote(midi, now, 1);
+    }
+    return;
+  }
+  if (useSynthFallback || sampleBuffers.size === 0) {
+    if (arpeggio) {
+      for (let i = 0; i < midis.length; i++) playSynthTone(ctx, midis[i], now + i * 0.15, 1);
+    } else {
+      for (const midi of midis) playSynthTone(ctx, midi, now, 1);
+    }
+    return;
+  }
   if (arpeggio) {
     for (let i = 0; i < midis.length; i++) {
       const midi = midis[i];
@@ -625,18 +853,92 @@ async function playChord(midis, arpeggio = false) {
 function getValidRoot() {
   const minNote = parseInt(minNoteSlider.value);
   const maxNote = parseInt(maxNoteSlider.value);
-  const sampleMidis = SAMPLE_MAP.map(s => s.midi);
+  if (minNote >= maxNote) return null;
   const whiteKeys = [0, 2, 4, 5, 7, 9, 11];
   const allKeys = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   const validOffsets = whiteKeysOnly.checked ? whiteKeys : allKeys;
   let validRoots = [];
-  for (const midi of sampleMidis) {
-    if (midi >= minNote && midi <= maxNote) {
-      const offset = midi % 12;
-      if (validOffsets.includes(offset)) validRoots.push(midi);
-    }
+  for (let midi = minNote; midi <= maxNote; midi++) {
+    const offset = midi % 12;
+    if (validOffsets.includes(offset)) validRoots.push(midi);
   }
-  return validRoots.length === 0 ? 60 : validRoots[Math.floor(Math.random() * validRoots.length)];
+  return validRoots.length === 0 ? null : validRoots[Math.floor(Math.random() * validRoots.length)];
+}
+
+async function apiPost(path, payload) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || ("API error: " + path));
+  return data;
+}
+
+async function runApiAction(action) {
+  try {
+    await action();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = err?.message || "שגיאת שרת פייתון";
+  }
+}
+
+function getPlayableNotes(questionOrNotes) {
+  const rawNotes = Array.isArray(questionOrNotes) ? questionOrNotes : (questionOrNotes?.notes || []);
+  const notes = [...rawNotes].sort((a, b) => a - b);
+  if (!useRandomInversions || notes.length < 3) return notes;
+
+  const inversion = typeof questionOrNotes?.inversion === "number"
+    ? questionOrNotes.inversion
+    : Math.floor(Math.random() * Math.min(3, notes.length));
+
+  if (questionOrNotes && typeof questionOrNotes === "object") questionOrNotes.inversion = inversion;
+
+  const voiced = [...notes];
+  for (let i = 0; i < inversion; i++) voiced[i] += 12;
+  return voiced.sort((a, b) => a - b);
+}
+
+function midiToNoteName(midi) {
+  const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const note = names[midi % 12];
+  const octave = Math.floor(midi / 12) - 1;
+  return `${note}${octave}`;
+}
+
+function inversionLabel(inv) {
+  if (inv === 0) return "שורש";
+  if (inv === 1) return "היפוך 1";
+  if (inv === 2) return "היפוך 2";
+  return "-";
+}
+
+function renderTriadHistory() {
+  if (!triadHistory.length) {
+    triadHistoryBody.innerHTML = "<tr><td colspan=\"5\">עדיין אין נתונים</td></tr>";
+    return;
+  }
+  triadHistoryBody.innerHTML = "";
+  triadHistory.forEach((row, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${idx + 1}</td><td>${row.degreeName}</td><td>${row.rootName}</td><td>${row.inversionName}</td><td>${row.time}</td>`;
+    triadHistoryBody.appendChild(tr);
+  });
+}
+
+function pushTriadHistory(question) {
+  if (!question || question.type !== "triad") return;
+  const entry = {
+    degreeName: TRIADS[question.degree]?.hebrew || "?",
+    rootName: midiToNoteName(question.root),
+    inversionName: inversionLabel(question.inversion),
+    time: new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+  };
+  triadHistory.unshift(entry);
+  if (triadHistory.length > 60) triadHistory.pop();
+  renderTriadHistory();
 }
 
 function selectNextDegree(lastDegree = null) {
@@ -662,52 +964,92 @@ function selectNextDegree(lastDegree = null) {
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-function randomThirdQuestion() {
-  const root = getValidRoot();
-  const isMajor = Math.random() < 0.5;
-  const notes = isMajor ? [root, root + 4] : [root, root + 3];
-  currentQuestion = { type: "third", quality: isMajor ? "major" : "minor", notes, root };
-  playChord(notes, isArpeggio);
+async function randomThirdQuestion() {
+  const q = await apiPost("/api/generate-third", {
+    minNote: parseInt(minNoteSlider.value),
+    maxNote: parseInt(maxNoteSlider.value),
+    whiteKeysOnly: whiteKeysOnly.checked,
+  });
+  currentQuestion = q;
+  playChord(getPlayableNotes(currentQuestion), isArpeggio);
   statusEl.textContent = "האזן וענה";
+  lastGuessEl.textContent = "";
   bigAnswerEl.textContent = "";
   questionStartTime = Date.now();
 }
 
-function randomTriadQuestion() {
-  const root = getValidRoot();
-  const degree = selectNextDegree(currentQuestion?.degree);
-  const triad = TRIADS[degree];
-  const notes = triad.intervals.map(i => root + i);
-  currentQuestion = { type: "triad", degree, notes, root, triadName: triad.hebrew };
-  playChord(notes, isArpeggio);
+async function randomTriadQuestion() {
+  const q = await apiPost("/api/generate-triad", {
+    minNote: parseInt(minNoteSlider.value),
+    maxNote: parseInt(maxNoteSlider.value),
+    whiteKeysOnly: whiteKeysOnly.checked,
+    lastDegree: currentQuestion?.degree ?? null,
+    biasStrength: parseInt(biasSlider.value),
+    adaptiveStrength: parseInt(adaptiveSlider.value),
+    degreeStats: stats.degreeStats,
+    useRandomInversions,
+  });
+  currentQuestion = { ...q, attempts: 0 };
+  pushTriadHistory(currentQuestion);
+  playChord(getPlayableNotes(currentQuestion), isArpeggio);
   statusEl.textContent = "האזן וענה";
+  lastGuessEl.textContent = "";
   bigAnswerEl.textContent = "";
   questionStartTime = Date.now();
 }
 
-function answerThird(quality) {
+async function answerThird(quality) {
   if (!currentQuestion || currentQuestion.type !== "third") return;
-  const isCorrect = currentQuestion.quality === quality;
+  const result = await apiPost("/api/check-third", { expected: currentQuestion.quality, guess: quality });
+  const isCorrect = !!result.correct;
   recordAnswer(isCorrect);
+  playNoiseFeedback(isCorrect);
   statusEl.textContent = isCorrect ? "✅ נכון" : "❌ לא נכון";
   bigAnswerEl.textContent = currentQuestion.quality === "major" ? "מז'ור" : "מינור";
 }
 
-function answerDegree(degree) {
+async function answerDegree(degree) {
   if (!currentQuestion || currentQuestion.type !== "triad") return;
-  const isCorrect = currentQuestion.degree === degree;
-  recordAnswer(isCorrect);
-  statusEl.textContent = isCorrect ? "✅ נכון" : "❌ לא נכון";
+  const result = await apiPost("/api/check-triad", { expected: currentQuestion.degree, guess: degree });
+  const isCorrect = !!result.correct;
+  currentQuestion.attempts = (currentQuestion.attempts || 0) + 1;
+  lastGuessEl.textContent = "ניחוש אחרון: " + TRIADS[degree].hebrew;
+
+  if (!isCorrect) {
+    currentQuestion.lastWrongGuess = degree;
+    playNoiseFeedback(false);
+    statusEl.textContent = "❌ לא נכון, נסה שוב";
+    bigAnswerEl.textContent = "";
+    return;
+  }
+
+  playNoiseFeedback(true);
+  recordAnswer(true);
+  statusEl.textContent = "✅ נכון";
   bigAnswerEl.textContent = TRIADS[currentQuestion.degree].hebrew;
-  stats.degreeStats[degree].asked++;
-  if (isCorrect) stats.degreeStats[degree].correct++;
+  const previousGuessText = typeof currentQuestion.lastWrongGuess === "number"
+    ? TRIADS[currentQuestion.lastWrongGuess].hebrew
+    : "לא היה";
+  lastGuessEl.textContent = "ניחוש לפני הצלחה: " + previousGuessText + " | ניסיונות: " + currentQuestion.attempts;
+  const degreeStat = stats.degreeStats[currentQuestion.degree];
+  degreeStat.asked++;
+  degreeStat.correct++;
+  degreeStat.solvedQuestions++;
+  degreeStat.attemptsToCorrectTotal += currentQuestion.attempts;
+  saveStats();
 }
 
-function playDegree(degree) {
-  const root = getValidRoot();
-  const triad = TRIADS[degree];
-  const notes = triad.intervals.map(i => root + i);
-  playChord(notes, isArpeggio);
+async function playDegree(degree, rootOverride = null) {
+  const root = rootOverride !== null ? rootOverride : getValidRoot();
+  if (root === null) throw new Error("אין תווים זמינים בטווח שנבחר.");
+  const data = await apiPost("/api/play-degree", {
+    degree,
+    root,
+    useRandomInversions,
+    minNote: parseInt(minNoteSlider.value),
+    maxNote: parseInt(maxNoteSlider.value),
+  });
+  playChord(getPlayableNotes({ notes: data.notes, inversion: data.inversion }), isArpeggio);
 }
 
 function recordAnswer(isCorrect) {
@@ -742,9 +1084,10 @@ function updateStatsUI() {
     for (let i = 0; i < 7; i++) {
       const stat = stats.degreeStats[i];
       const acc = stat.asked > 0 ? Math.round((stat.correct / stat.asked) * 100) : 0;
+      const avgAttempts = stat.solvedQuestions > 0 ? (stat.attemptsToCorrectTotal / stat.solvedQuestions).toFixed(2) : "-";
       const row = document.createElement("div");
       row.className = "degree-stat-row";
-      row.innerHTML = `<div class="degree-name">${TRIADS[i].hebrew}</div><div class="degree-bar"><div class="degree-bar-fill" style="width: ${acc}%">${stat.asked > 0 ? acc + "%" : "-"}</div></div>`;
+      row.innerHTML = `<div class="degree-name">${TRIADS[i].hebrew} | ממוצע ניסיונות: ${avgAttempts}</div><div class="degree-bar"><div class="degree-bar-fill" style="width: ${acc}%">${stat.asked > 0 ? acc + "%" : "-"}</div></div>`;
       degreeStatsContent.appendChild(row);
     }
   } else {
@@ -760,9 +1103,15 @@ function saveStats() {
 function loadStats() {
   const saved = localStorage.getItem("earTrainerStats");
   if (saved) stats = JSON.parse(saved);
+  for (let i = 0; i < 7; i++) {
+    if (!stats.degreeStats[i]) stats.degreeStats[i] = { asked: 0, correct: 0, solvedQuestions: 0, attemptsToCorrectTotal: 0 };
+    if (typeof stats.degreeStats[i].solvedQuestions !== "number") stats.degreeStats[i].solvedQuestions = 0;
+    if (typeof stats.degreeStats[i].attemptsToCorrectTotal !== "number") stats.degreeStats[i].attemptsToCorrectTotal = 0;
+  }
   const configSaved = localStorage.getItem("earTrainerConfig");
   if (configSaved) {
     config = JSON.parse(configSaved);
+    if (config.minNote >= config.maxNote) config.maxNote = config.minNote + 1;
     biasSlider.value = config.biasStrength;
     biasValue.textContent = config.biasStrength + "%";
     adaptiveSlider.value = config.adaptiveStrength;
@@ -772,11 +1121,25 @@ function loadStats() {
     maxNoteSlider.value = config.maxNote;
     maxNoteValue.textContent = config.maxNote;
     whiteKeysOnly.checked = config.whiteKeysOnly;
+    useRandomInversions = !!config.useRandomInversions;
+    inversionsToggle.checked = useRandomInversions;
+    exploreSubMode = config.exploreSubMode || "triads";
+    exploreSubModeSelect.value = exploreSubMode;
   }
   updateStatsUI();
 }
 
 unlockBtn.addEventListener("click", async () => await ensureAudioReady());
+
+// Some browsers keep WebAudio locked until a real user gesture.
+let userGestureAudioInitDone = false;
+async function initAudioFromUserGesture() {
+  if (userGestureAudioInitDone) return;
+  userGestureAudioInitDone = true;
+  await ensureAudioReady();
+}
+window.addEventListener("pointerdown", initAudioFromUserGesture, { passive: true });
+window.addEventListener("keydown", initAudioFromUserGesture);
 
 modeThirdBtn.addEventListener("click", () => {
   currentMode = "thirds";
@@ -795,28 +1158,70 @@ modeTriadsBtn.addEventListener("click", () => {
 });
 
 playBtn.addEventListener("click", () => {
-  if (currentMode === "thirds") randomThirdQuestion();
-  else randomTriadQuestion();
+  runApiAction(async () => {
+    if (currentMode === "thirds") await randomThirdQuestion();
+    else await randomTriadQuestion();
+  });
 });
 
 replayBtn.addEventListener("click", () => {
-  if (currentQuestion) playChord(currentQuestion.notes, isArpeggio);
+  if (currentQuestion) playChord(getPlayableNotes(currentQuestion), isArpeggio);
 });
 
 refC4Btn.addEventListener("click", () => {
-  if (currentMode === "triads") playDegree(0);
-  else playMidi(60);
+  runApiAction(async () => {
+    const root = currentQuestion?.root ?? getValidRoot();
+    await playDegree(0, root);
+  });
 });
 
 arpeggioToggle.addEventListener("change", () => { isArpeggio = arpeggioToggle.checked; });
+inversionsToggle.addEventListener("change", () => {
+  useRandomInversions = inversionsToggle.checked;
+  config.useRandomInversions = useRandomInversions;
+  if (currentQuestion) {
+    if (useRandomInversions && currentQuestion.notes.length >= 3) {
+      if (typeof currentQuestion.inversion !== "number" || currentQuestion.inversion === 0) {
+        currentQuestion.inversion = Math.floor(Math.random() * 3);
+      }
+    } else {
+      currentQuestion.inversion = 0;
+    }
+    playChord(getPlayableNotes(currentQuestion), isArpeggio);
+  }
+  saveStats();
+});
 playDegreesToggle.addEventListener("change", () => { isPlayDegreesMode = playDegreesToggle.checked; });
-majorBtn.addEventListener("click", () => answerThird("major"));
-minorBtn.addEventListener("click", () => answerThird("minor"));
+exploreSubModeSelect.addEventListener("change", () => {
+  exploreSubMode = exploreSubModeSelect.value;
+  config.exploreSubMode = exploreSubMode;
+  saveStats();
+});
+majorBtn.addEventListener("click", () => {
+  runApiAction(async () => {
+    if (isPlayDegreesMode && exploreSubMode === "qualityPlay" && currentQuestion?.type === "third") {
+      playChord([currentQuestion.root, currentQuestion.root + 4], isArpeggio);
+    } else {
+      await answerThird("major");
+    }
+  });
+});
+minorBtn.addEventListener("click", () => {
+  runApiAction(async () => {
+    if (isPlayDegreesMode && exploreSubMode === "qualityPlay" && currentQuestion?.type === "third") {
+      playChord([currentQuestion.root, currentQuestion.root + 3], isArpeggio);
+    } else {
+      await answerThird("minor");
+    }
+  });
+});
 
 degreeButtons.forEach((btn, idx) => {
   btn.addEventListener("click", () => {
-    if (isPlayDegreesMode) playDegree(idx);
-    else answerDegree(idx);
+    runApiAction(async () => {
+      if (isPlayDegreesMode) await playDegree(idx);
+      else await answerDegree(idx);
+    });
   });
 });
 
@@ -834,12 +1239,20 @@ adaptiveSlider.addEventListener("input", (e) => {
 
 minNoteSlider.addEventListener("input", (e) => {
   config.minNote = parseInt(e.target.value);
+  if (config.minNote >= config.maxNote) {
+    config.minNote = config.maxNote - 1;
+    minNoteSlider.value = config.minNote;
+  }
   minNoteValue.textContent = config.minNote;
   saveStats();
 });
 
 maxNoteSlider.addEventListener("input", (e) => {
   config.maxNote = parseInt(e.target.value);
+  if (config.maxNote <= config.minNote) {
+    config.maxNote = config.minNote + 1;
+    maxNoteSlider.value = config.maxNote;
+  }
   maxNoteValue.textContent = config.maxNote;
   saveStats();
 });
@@ -852,7 +1265,9 @@ whiteKeysOnly.addEventListener("change", () => {
 resetStatsBtn.addEventListener("click", () => {
   if (confirm("אפס סטטיסטיקה?")) {
     stats = { totalQuestions: 0, correctAnswers: 0, currentStreak: 0, bestStreak: 0, responseTimes: [], degreeStats: {} };
-    for (let i = 0; i < 7; i++) stats.degreeStats[i] = { asked: 0, correct: 0 };
+    for (let i = 0; i < 7; i++) stats.degreeStats[i] = { asked: 0, correct: 0, solvedQuestions: 0, attemptsToCorrectTotal: 0 };
+    triadHistory = [];
+    renderTriadHistory();
     updateStatsUI();
     saveStats();
   }
@@ -860,23 +1275,101 @@ resetStatsBtn.addEventListener("click", () => {
 
 window.addEventListener("keydown", (e) => {
   const code = e.code;
-  const key = e.key.toUpperCase();
-  if (code === "Space") { e.preventDefault(); playBtn.click(); }
-  else if (key === "R") { e.preventDefault(); replayBtn.click(); }
-  else if (key === "C") { e.preventDefault(); refC4Btn.click(); }
-  else if (key === "E") { e.preventDefault(); arpeggioToggle.click(); }
-  else if (key === "Q") { e.preventDefault(); playDegreesToggle.click(); }
-  else if (currentMode === "thirds") {
-    if (key === "M") { e.preventDefault(); majorBtn.click(); }
-    else if (key === "N") { e.preventDefault(); minorBtn.click(); }
+  const key = e.key;
+  const upperKey = key.toUpperCase();
+
+  // Always allow browser/system combinations.
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+
+  if (code === "Enter" || code === "NumpadEnter") {
+    e.preventDefault();
+    playBtn.click();
+    return;
+  }
+
+  if (code === "Space") {
+    e.preventDefault();
+    replayBtn.click();
+    return;
+  }
+
+  if (
+    code === "KeyR" ||
+    code === "Digit0" ||
+    code === "Digit9" ||
+    code === "Digit8" ||
+    code === "Digit7" ||
+    upperKey === "R" ||
+    key === "ר" ||
+    key === "0" ||
+    key === "9" ||
+    key === "8" ||
+    key === "7"
+  ) {
+    e.preventDefault();
+    replayBtn.click();
+    return;
+  }
+
+  if (code === "KeyC" || code === "Digit1" || upperKey === "C" || key === "ב" || key === "1") {
+    e.preventDefault();
+    refC4Btn.click();
+    return;
+  }
+
+  if (code === "KeyE" || upperKey === "E" || key === "ק") {
+    e.preventDefault();
+    arpeggioToggle.click();
+    return;
+  }
+
+  if (code === "KeyQ" || code === "KeyP" || upperKey === "Q" || upperKey === "P" || key === "/") {
+    e.preventDefault();
+    playDegreesToggle.click();
+    return;
+  }
+
+  if (currentMode === "thirds") {
+    const isMajorShortcut = code === "KeyM" || code === "KeyF" || upperKey === "M" || upperKey === "F";
+    const isMinorShortcut = code === "KeyN" || code === "KeyD" || upperKey === "N" || upperKey === "D";
+
+    if (isMajorShortcut) {
+      e.preventDefault();
+      runApiAction(async () => {
+        if (isPlayDegreesMode && exploreSubMode === "qualityPlay" && currentQuestion?.type === "third") {
+          playChord([currentQuestion.root, currentQuestion.root + 4], isArpeggio);
+        } else {
+          await answerThird("major");
+        }
+      });
+      return;
+    }
+
+    if (isMinorShortcut) {
+      e.preventDefault();
+      runApiAction(async () => {
+        if (isPlayDegreesMode && exploreSubMode === "qualityPlay" && currentQuestion?.type === "third") {
+          playChord([currentQuestion.root, currentQuestion.root + 3], isArpeggio);
+        } else {
+          await answerThird("minor");
+        }
+      });
+      return;
+    }
   } else if (currentMode === "triads") {
-    const degreeMap = { J: 0, K: 1, L: 2, ";": 3, U: 4, I: 5, O: 6 };
-    if (degreeMap[key] !== undefined) { e.preventDefault(); degreeButtons[degreeMap[key]].click(); }
+    const degreeMapByCode = { KeyJ: 0, KeyK: 1, KeyL: 2, Semicolon: 3, KeyU: 4, KeyI: 5, KeyO: 6 };
+    const degreeMapByKey = { J: 0, K: 1, L: 2, ";": 3, U: 4, I: 5, O: 6 };
+    const degree = degreeMapByCode[code] !== undefined ? degreeMapByCode[code] : degreeMapByKey[upperKey];
+    if (degree !== undefined) {
+      e.preventDefault();
+      degreeButtons[degree].click();
+    }
   }
 });
 
 loadStats();
 updateStatsUI();
+renderTriadHistory();
   </script>
 </body>
 </html>
